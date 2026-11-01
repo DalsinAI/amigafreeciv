@@ -1,0 +1,15 @@
+
+[datafile]
+options = "+Freeciv-3.3-modpack"
+
+[modpack]
+; Name of the modpack
+name = "toonhex"
+
+[components]
+; Whether the modpack has a tileset component
+tileset = TRUE
+
+[tileset]
+; For modpacks with the tileset component, "tilespec" needs to be defined.
+tilespec = "toonhex"
