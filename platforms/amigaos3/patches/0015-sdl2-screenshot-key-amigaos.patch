@@ -1,17 +1,19 @@
 --- a/client/gui-sdl2/graphics.c
 +++ b/client/gui-sdl2/graphics.c
-@@ -693,6 +693,52 @@
+@@ -693,6 +693,58 @@
    return main_surface->h;
  }
  
 +#ifdef __amigaos__
 +#include <stdio.h>
++#include <string.h>
 +
 +/**********************************************************************//**
 +  AmigaOS 3.x: F10 writes the whole window to PROGDIR:User/shot-NNN.png
 +  (SDL2_image), and the same file again in pieces of 40000 bytes
-+  (shot-NNN.png.00, .01 ...; joined end to end they are the PNG), small
-+  enough to copy out of a test lab one at a time. Upstream's own
++  (shot-NNN.png.00, .01 ...; joined end to end they are the PNG, with
++  zeros after its end to fill the last piece), small enough to copy out
++  of a test lab one at a time. Upstream's own
 +  screenshot key (Print) is compiled out, and an Amiga has no such key.
 +**************************************************************************/
 +void amiga_screenshot(void)
@@ -38,6 +40,10 @@
 +      char pname[72];
 +      FILE *out;
 +
++      if (got < sizeof(buf)) {
++        memset(buf + got, 0, sizeof(buf) - got);
++        got = sizeof(buf);
++      }
 +      SDL_snprintf(pname, sizeof(pname), "%s.%02d", name, part++);
 +      if ((out = fopen(pname, "wb")) != NULL) {
 +        fwrite(buf, 1, got, out);
