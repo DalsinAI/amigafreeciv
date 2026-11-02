@@ -1,0 +1,82 @@
+diff --git a/utility/netintf.c b/utility/netintf.c
+index b61d7b2..08d683d 100644
+--- a/utility/netintf.c
++++ b/utility/netintf.c
+@@ -158,6 +158,8 @@ int fc_readsocket(int sock, void *buf, size_t size)
+   if (result == -1) {
+     set_socket_errno();
+   }
++#elif defined(__amigaos__)
++  result = recv(sock, buf, size, 0);
+ #else  /* FREECIV_HAVE_WINSOCK */
+   result = read(sock, buf, size);
+ #endif /* FREECIV_HAVE_WINSOCK */
+@@ -177,6 +179,8 @@ int fc_writesocket(int sock, const void *buf, size_t size)
+   if (result == -1) {
+     set_socket_errno();
+   }
++#elif defined(__amigaos__)
++  result = send(sock, buf, size, 0);
+ #else  /* FREECIV_HAVE_WINSOCK */
+ #  ifdef MSG_NOSIGNAL
+   result = send(sock, buf, size, MSG_NOSIGNAL);
+@@ -195,6 +199,8 @@ void fc_closesocket(int sock)
+ {
+ #ifdef FREECIV_HAVE_WINSOCK
+   closesocket(sock);
++#elif defined(__amigaos__)
++  fc_amiga_closesocket(sock);
+ #else
+   close(sock);
+ #endif
+@@ -205,6 +211,10 @@ void fc_closesocket(int sock)
+ *************************************************************************/
+ void fc_init_network(void)
+ {
++#ifdef __amigaos__
++  /* The port's own bsdsocket.library base; says if there is none */
++  (void) fc_amiga_net_init();
++#endif /* __amigaos__ */
+ #ifdef FREECIV_HAVE_WINSOCK
+   WSADATA wsa;
+ 
+@@ -234,7 +244,11 @@ void fc_shutdown_network(void)
+ *************************************************************************/
+ void fc_nonblock(int sockfd)
+ {
+-#ifdef NONBLOCKING_SOCKETS
++#ifdef __amigaos__
++  if (fc_amiga_nonblock(sockfd) == -1) {
++    log_error("IoctlSocket(FIONBIO) failed: %s", fc_strerror(fc_get_errno()));
++  }
++#elif defined(NONBLOCKING_SOCKETS)
+ #ifdef FREECIV_HAVE_WINSOCK
+ #ifdef __LP64__
+   unsigned b = 1;
+@@ -502,7 +516,8 @@ fz_FILE *fc_querysocket(int sock, void *buf, size_t size)
+ {
+   FILE *fp;
+ 
+-#ifdef HAVE_FDOPEN
++  /* AmigaOS: the socket is bsdsocket.library's, not a C library file */
++#if defined(HAVE_FDOPEN) && !defined(__amigaos__)
+   fp = fdopen(sock, "r+b");
+ 
+   if (fp == nullptr) {
+diff --git a/utility/netintf.h b/utility/netintf.h
+index 96617ae..e5dfd82 100644
+--- a/utility/netintf.h
++++ b/utility/netintf.h
+@@ -46,6 +46,12 @@ extern "C" {
+ #include <ws2tcpip.h>
+ #endif
+ 
++#ifdef __amigaos__
++/* Sockets straight on bsdsocket.library, never in libnix's descriptor
++ * table (platforms/amigaos3/compat/net) */
++#include <fc_amiga_net.h>
++#endif /* __amigaos__ */
++
+ /* utility */
+ #include "ioz.h"
+ #include "net_types.h"
