@@ -20,6 +20,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <unistd.h>                    /* usleep */
 #include <proto/bsdsocket.h>    /* SocketBase: libnix's, opened by its socket startup */
 
 int fc_amiga_select(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *tv);
@@ -46,6 +47,14 @@ int fc_amiga_select(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *tv)
     f = _lx_fhfromfd(fd);
     if (!f || !(f->lx_flags & LX_SOCKET) || !SocketBase
         || f->lx_sock < 0 || f->lx_sock >= FD_SETSIZE) {
+      static int warned;
+
+      if (!warned) {
+        warned = 1;
+        fprintf(stderr, "fc_amiga_select: descriptor %d is not a socket"
+                " (flags %d, socket %d); using libnix's select()\n", fd,
+                f ? f->lx_flags : -1, f ? f->lx_sock : -1);
+      }
       return select(n, r, w, e, tv);
     }
     if (ir) FD_SET(f->lx_sock, &sr);
@@ -58,8 +67,43 @@ int fc_amiga_select(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *tv)
   if (SocketBase == NULL) {
     return select(n, r, w, e, tv);
   }
-  rc = WaitSelect(top, r ? &sr : NULL, w ? &sw : NULL, e ? &se : NULL,
-                  (APTR) tv, NULL);
+  if (tv == NULL || (tv->tv_sec == 0 && tv->tv_usec == 0)) {
+    rc = WaitSelect(top, r ? &sr : NULL, w ? &sw : NULL, e ? &se : NULL,
+                    (APTR) tv, NULL);
+  } else {
+    /* A timed wait as zero-timeout polls with short sleeps between: in the
+     * lab the client froze in a 10 ms WaitSelect() on an idle connection
+     * (tests/select_timeout.c measures it). */
+    struct timeval start, now;
+    long limit = tv->tv_sec * 1000000L + tv->tv_usec, spent;
+    fd_set pr, pw, pe;
+
+    gettimeofday(&start, NULL);
+    for (;;) {
+      struct timeval zero;
+
+      zero.tv_sec = 0;
+      zero.tv_usec = 0;
+      pr = sr;
+      pw = sw;
+      pe = se;
+      rc = WaitSelect(top, r ? &pr : NULL, w ? &pw : NULL, e ? &pe : NULL,
+                      (APTR) &zero, NULL);
+      if (rc != 0) {
+        break;
+      }
+      gettimeofday(&now, NULL);
+      spent = (now.tv_sec - start.tv_sec) * 1000000L
+              + (now.tv_usec - start.tv_usec);
+      if (spent >= limit) {
+        break;
+      }
+      usleep(limit - spent < 2000 ? limit - spent : 2000);
+    }
+    sr = pr;
+    sw = pw;
+    se = pe;
+  }
   if (rc < 0) {
     errno = Errno();
     return -1;

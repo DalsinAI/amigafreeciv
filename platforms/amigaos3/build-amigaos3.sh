@@ -77,6 +77,8 @@ mkdir -p "$OUT/tests"
     -I"$OUT/build" -I"$TREE/utility" -I"$SYSROOT/include" "$HERE/tests/registry_load.c" \
     "$OUT/build/libfreeciv.a" -Wl,--wrap=fileinfoname -L"$SYSROOT/lib" "$SYSROOT/lib/fc_stack.o" \
     -lfcicu -lz -lfcamiga -lsocket -lm -pthread -o "$OUT/tests/RegistryLoad"
+"$PREFIX/bin/m68k-amigaos-gcc" -noixemul -m68040 -m68881 -O2 -I"$SYSROOT/include" \
+    "$HERE/tests/select_timeout.c" -L"$SYSROOT/lib" -lfcamiga -lsocket -o "$OUT/tests/SelectTimeout"
 
 # 3. The package. Data: the classic and civ2civ3 rulesets with what they
 #    include, and for the client its theme, one tileset and fonts.

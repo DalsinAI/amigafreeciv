@@ -54,6 +54,8 @@ go to `PROGDIR:User` (beside the programs).
 
 - Server alone, headless: `Execute ServerTest.amigados` plays five AI turns
   on a small classic map and saves each turn in `User/saves`.
+- The game: `Execute Freeciv.amigados` (the SDL2 client; its modules go in
+  `LIBS:GFOpenGPU/`). "Start New Game" starts `freeciv-server` beside it.
 
 ## Observed
 
@@ -83,6 +85,32 @@ One build-script fault cost the most: a `-Dc_args` that silently dropped
 `-m68040 -m68881`, so the first lab builds were 68000 soft-float code that
 ran out of memory building a hash table (the build now checks the flags).
 
-Not shown yet: a client connecting, a human game, loading a save into a
-running game, sound, and any timing beyond these first turns. This is TESTING,
-not RELEASE.
+### 2 November 2026: client and server together (steps 3 and 4, partial)
+
+Cradle build of `team4/freeciv-connect-20261102` at `d6bb5c8`, same lab, with
+the build's `SDL2.module` and `SDL2_image.module` in `LIBS:GFOpenGPU/`:
+
+- `Freeciv.amigados` opens the client in a 640 x 480 window on the RTG
+  Workbench: intro picture, messages, main menu (screenshots). Colours are
+  right since patch 0012; before it red and blue were crossed.
+- "Start New Game" started `PROGDIR:freeciv-server` as its own process
+  (`Status` lists both), the client connected over 127.0.0.1, logged in,
+  took hack access ("Established control over the server. You have command
+  access level 'hack'") and drew the pregame page with the saved games the
+  server offers.
+- **Then the client stops answering** (idle in the lab's profile; mouse and
+  keys do nothing), so no game was started from the client, and steps 5
+  (turns by hand, save and load from the client) and 6 (turn times with a
+  human player) are not done. The connection itself works; the client's
+  10 ms `select()` on the server socket is the suspect: libnix's socket
+  descriptors and its `select()` disagree (SelectTimeout showed sockets
+  numbered like the standard streams), and making timed waits into polls
+  did not help. Next: talk to `bsdsocket.library` directly in `netintf.c`
+  on AmigaOS (`recv`/`send`/`CloseSocket`/`WaitSelect` on the library's own
+  descriptors, bypassing libnix's descriptor table), then rerun.
+- With the host decode service, loading the client's ~1,100 pictures took
+  the lab's runtime down on the PC (glibc heap assertion); the launcher sets
+  `SDL_IMAGE_DECODER=cpu`.
+
+Not shown yet: a game played from the client, save/load from the client,
+sound, turn times with a human player. This is TESTING, not RELEASE.
