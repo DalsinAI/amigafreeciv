@@ -65,7 +65,7 @@ for t in "${TARGETS[@]}"; do
     "$PREFIX/bin/m68k-amigaos-strip" "$PKG/$t"
 done
 D=$TREE/data
-cp -r "$D/classic" "$D/civ2civ3" "$D/default" "$D/nation" "$PKG/data/"
+cp -r "$D/classic" "$D/civ2civ3" "$D/default" "$D/nation" "$D/override" "$PKG/data/"
 cp "$D/classic.modpack" "$D/civ2civ3.modpack" "$D/default.modpack" "$PKG/data/" 2>/dev/null || true
 cp "$D/helpdata.txt" "$PKG/data/"
 if [[ " $PARTS " == *" client "* ]]; then

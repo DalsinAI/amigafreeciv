@@ -1,11 +1,12 @@
-# Freeciv server, headless: three AI players on a small map for five turns,
+# Freeciv server, headless: three AI players on a small map for five turns
+# (timeout -1: each turn ends as soon as the AIs have moved),
 # saving at every turn and at the end. Run from the Freeciv drawer:
 #   freeciv-server -e --ruleset classic -r autogame.serv
 set size 1
 set aifill 3
 set minplayers 0
 set endturn 5
-set timeout 0
+set timeout -1
 set autosaves "TURN|GAMEOVER"
 set saveturns 1
 set savename "auto-T%04T"

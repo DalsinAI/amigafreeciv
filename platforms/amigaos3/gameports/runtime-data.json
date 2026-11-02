@@ -8,7 +8,7 @@
       "packaging": "bundled",
       "source": "data/ at the pinned source commit",
       "parts": {
-        "server": ["data/classic", "data/civ2civ3", "data/default", "data/nation", "data/helpdata.txt"],
+        "server": ["data/classic", "data/civ2civ3", "data/default", "data/nation", "data/override", "data/helpdata.txt"],
         "client": ["data/themes/gui-sdl2/human", "data/trident", "data/trident.tilespec", "data/misc", "data/flags", "data/buildings", "data/wonders", "data/fonts"]
       },
       "notes": "Freeciv's data is distributed with its source under the GPL; nothing is downloaded. Individual tilesets and themes carry their own README credits, which must be reviewed (and kept) before a RELEASE package."
