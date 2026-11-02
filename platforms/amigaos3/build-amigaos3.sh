@@ -56,6 +56,13 @@ SOURCE_DATE_EPOCH=$EPOCH meson setup "$OUT/build" "$TREE" --cross-file "$CROSS" 
 SOURCE_DATE_EPOCH=$EPOCH ninja -C "$OUT/build" -j"$JOBS" "${TARGETS[@]}" > "$OUT/build.log" 2>&1 \
     || { grep -E "error|Error|FAILED" "$OUT/build.log" | head -40; exit 5; }
 
+# The diagnostic tools in tests/, against the same library.
+mkdir -p "$OUT/tests"
+"$PREFIX/bin/m68k-amigaos-gcc" -noixemul -m68040 -m68881 -O2 -std=gnu2x -DHAVE_CONFIG_H \
+    -I"$OUT/build" -I"$TREE/utility" -I"$SYSROOT/include" "$HERE/tests/registry_load.c" \
+    "$OUT/build/libfreeciv.a" -Wl,--wrap=fileinfoname -L"$SYSROOT/lib" "$SYSROOT/lib/fc_stack.o" \
+    -lfcicu -lz -lfcamiga -lsocket -lm -pthread -o "$OUT/tests/RegistryLoad"
+
 # 3. The package. Data: the classic and civ2civ3 rulesets with what they
 #    include, and for the client its theme, one tileset and fonts.
 PKG=$OUT/freeciv

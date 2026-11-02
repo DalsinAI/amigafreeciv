@@ -64,7 +64,7 @@ PKG=$WORK/game/freeciv
 (cd "$PKG" && tar --format=ustar --owner=0 --group=0 --numeric-owner --sort=name \
     --mtime="@$(python3 -c "import json;print(json.load(open('$WORK/game/receipt.json'))['source_date_epoch'])")" \
     -cf "$OUT/FreecivData.tar" data docs)
-for f in "$PKG"/freeciv-* "$PKG"/*.amigados "$PKG"/*.serv; do
+for f in "$PKG"/freeciv-* "$PKG"/*.amigados "$PKG"/*.serv "$WORK"/game/tests/*; do
     [[ -f "$f" ]] && cp "$f" "$OUT/"
 done
 cp "$WORK/game/build.log" "$WORK/game/configure.log" "$OUT/"
