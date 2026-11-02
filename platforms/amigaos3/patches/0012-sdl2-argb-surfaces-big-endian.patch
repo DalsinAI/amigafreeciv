@@ -1,0 +1,60 @@
+diff --git a/client/gui-sdl2/graphics.c b/client/gui-sdl2/graphics.c
+index 95b8a09..af91c15 100644
+--- a/client/gui-sdl2/graphics.c
++++ b/client/gui-sdl2/graphics.c
+@@ -557,21 +557,16 @@ bool create_surfaces(int width, int height)
+ 
+   free_surfaces();
+ 
+-  if (is_bigendian()) {
+-    main_surface = SDL_CreateRGBSurface(0, width, height, 32,
+-                                        0x0000FF00, 0x00FF0000,
+-                                        0xFF000000, 0x000000FF);
+-    main_data.map = SDL_CreateRGBSurface(0, width, height, 32,
+-                                         0x0000FF00, 0x00FF0000,
+-                                         0xFF000000, 0x000000FF);
+-  } else {
+-    main_surface = SDL_CreateRGBSurface(0, width, height, 32,
+-                                        0x00FF0000, 0x0000FF00,
+-                                        0x000000FF, 0xFF000000);
+-    main_data.map = SDL_CreateRGBSurface(0, width, height, 32,
+-                                         0x00FF0000, 0x0000FF00,
+-                                         0x000000FF, 0xFF000000);
+-  }
++  /* SDL's masks are on the pixel's 32-bit value, whatever the byte order:
++   * these are ARGB8888 everywhere, the format of main_data.maintext that
++   * the surface is copied into. (The big-endian masks this had before made
++   * BGRA8888, and every colour came out with red and blue crossed.) */
++  main_surface = SDL_CreateRGBSurface(0, width, height, 32,
++                                      0x00FF0000, 0x0000FF00,
++                                      0x000000FF, 0xFF000000);
++  main_data.map = SDL_CreateRGBSurface(0, width, height, 32,
++                                       0x00FF0000, 0x0000FF00,
++                                       0x000000FF, 0xFF000000);
+ 
+   if (main_surface == NULL || main_data.map == NULL) {
+     log_fatal(_("Failed to create RGB surface: %s"), SDL_GetError());
+diff --git a/client/gui-sdl2/sprite.c b/client/gui-sdl2/sprite.c
+index 4cf05a2..c368aab 100644
+--- a/client/gui-sdl2/sprite.c
++++ b/client/gui-sdl2/sprite.c
+@@ -144,15 +144,10 @@ struct sprite *create_sprite(int width, int height, struct color *pcolor)
+   fc_assert_ret_val(height > 0, NULL);
+   fc_assert_ret_val(pcolor != NULL, NULL);
+ 
+-  if (is_bigendian()) {
+-    mypixbuf = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
+-                                    0x0000FF00, 0x00FF0000,
+-                                    0xFF000000, 0x000000FF);
+-  } else {
+-    mypixbuf = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
+-                                    0x00FF0000, 0x0000FF00,
+-                                    0x000000FF, 0xFF000000);
+-  }
++  /* ARGB8888 on any byte order: SDL's masks are on the 32-bit value */
++  mypixbuf = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32,
++                                  0x00FF0000, 0x0000FF00,
++                                  0x000000FF, 0xFF000000);
+ 
+   SDL_FillRect(mypixbuf, NULL,
+                SDL_MapRGBA(mypixbuf->format,
