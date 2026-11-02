@@ -66,7 +66,7 @@ same machine.
 | SDL2_image | GFOpenRTG `SDL2_image.module` | link stub |
 | SDL2_ttf | GFOpenRTG `libSDL2_ttf.a` with FreeType 2.14.3 | static |
 | SDL2_gfx | bundled in `dependencies/SDL2_gfx` | bundled |
-| SDL2_mixer | GFOpenRTG `SDL2_mixer.module` | not used yet: sound off |
+| SDL2_mixer | GFOpenRTG `SDL2_mixer.module` (stb_vorbis inside) | link stub; stdsounds and stdmusic from the source tree |
 
 ## Cost on a 68040
 
