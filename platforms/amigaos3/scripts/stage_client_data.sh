@@ -26,3 +26,4 @@ done
 cp "$D/flags/credits" "$P/flags/" 2>/dev/null || true
 cp -r "$D/stdsounds" "$D/stdmusic" "$P/"
 cp "$D/stdsounds.soundspec" "$D/stdmusic.musicspec" "$P/"
+find "$P" -name .gitignore -delete

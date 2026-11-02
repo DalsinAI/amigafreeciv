@@ -1,13 +1,15 @@
 --- a/client/audio_sdl.c
 +++ b/client/audio_sdl.c
-@@ -53,10 +53,94 @@
+@@ -53,10 +53,96 @@
   * such as a delay before playing the sound. */
  #ifdef FREECIV_MSWINDOWS
  const size_t buf_size = 4096;
 +#elif defined(__amigaos__) && !defined(AUDIO_SDL3)
-+/* AmigaOS 3.x: SDL plays through AHI. SetEnv FREECIV_AUDIOBUFFER sets the
-+ * samples a buffer (256 to 16384), for measuring. */
-+static size_t buf_size = 1024;
++/* AmigaOS 3.x: SDL plays through AHI. With 1024 samples (23 ms) the
++ * mixer's buffers in the lab came up to 72 ms apart and a few short in
++ * five seconds; with 4096 (93 ms, as on Windows) they kept time. SetEnv
++ * FREECIV_AUDIOBUFFER sets another size (256 to 16384), for measuring. */
++static size_t buf_size = 4096;
  #else
  const size_t buf_size = 1024;
  #endif
@@ -95,7 +97,7 @@
  #ifdef AUDIO_SDL3
  #define MIX_CHANNELS 8
  static MIX_Audio *mus = nullptr;
-@@ -152,7 +236,16 @@
+@@ -152,7 +238,16 @@
  #ifdef AUDIO_SDL3
      mus = MIX_LoadAudio(mixer, fullpath, FALSE);
  #else  /* AUDIO_SDL3 */
@@ -112,7 +114,7 @@
  #endif /* AUDIO_SDL3 */
      if (mus == nullptr) {
        log_error("Can't open file \"%s\": %s",
-@@ -207,7 +300,16 @@
+@@ -207,7 +302,16 @@
  #ifdef AUDIO_SDL3
      wave = MIX_LoadAudio(mixer, fullpath, FALSE);
  #else  /* AUDIO_SDL3 */
@@ -129,11 +131,23 @@
  #endif /* AUDIO_SDL3 */
      if (wave == nullptr) {
        log_error("Can't open file \"%s\"", fullpath);
-@@ -406,7 +508,17 @@
+@@ -406,7 +510,29 @@
    Mix_HaltMusic();
    Mix_FreeMusic(mus);
  
 +#ifdef __amigaos__
++  if (amiga_stats_fh) {
++    char line[200] = "audio: music decoders used:";
++    int d;
++
++    /* SDL2_mixer opens a decoder when it first needs it */
++    for (d = 0; d < Mix_GetNumMusicDecoders(); d++) {
++      fc_strlcat(line, " ", sizeof(line));
++      fc_strlcat(line, Mix_GetMusicDecoder(d), sizeof(line));
++    }
++    fc_strlcat(line, "\n", sizeof(line));
++    amiga_stats_write(line);
++  }
 +  Mix_SetPostMix(nullptr, nullptr);
 +#endif
    Mix_CloseAudio();
@@ -147,7 +161,7 @@
  #endif /* AUDIO_SDL3 */
  
    quit_sdl_audio();
-@@ -437,6 +549,16 @@
+@@ -437,6 +563,16 @@
    const int audio_format = MIX_DEFAULT_FORMAT;
    const int audio_channels = 2;
  
@@ -164,26 +178,21 @@
    if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, buf_size) < 0) {
      log_error("Error calling Mix_OpenAudio");
  #endif /* AUDIO_SDL3 */
-@@ -452,6 +574,42 @@
+@@ -452,6 +588,39 @@
                          "MIX_PROP_PLAY_LOOPS_NUMBER", -1);
  #else  /* AUDIO_SDL3 */
    Mix_AllocateChannels(MIX_CHANNELS);
 +#ifdef __amigaos__
 +  {
-+    int freq = 0, channels = 0, d;
++    int freq = 0, channels = 0;
 +    Uint16 format = 0;
 +    const char *stats = getenv("FREECIV_AUDIOSTATS");
-+    char decoders[160] = "";
 +
 +    Mix_QuerySpec(&freq, &format, &channels);
-+    for (d = 0; d < Mix_GetNumMusicDecoders(); d++) {
-+      fc_strlcat(decoders, d > 0 ? " " : "", sizeof(decoders));
-+      fc_strlcat(decoders, Mix_GetMusicDecoder(d), sizeof(decoders));
-+    }
 +    log_normal("Audio: %s, %d Hz, %d channel(s), format 0x%04x, "
-+               "%d samples a buffer; music decoders %s",
++               "%d samples a buffer",
 +               SDL_GetCurrentAudioDriver(), freq, channels,
-+               (unsigned)format, (int)buf_size, decoders);
++               (unsigned)format, (int)buf_size);
 +    if (freq > 0 && channels > 0) {
 +      amiga_freq = freq;
 +      amiga_channels = channels;
@@ -192,11 +201,13 @@
 +        && (amiga_stats_fh = Open((STRPTR)stats, MODE_NEWFILE)) != 0) {
 +      char line[200];
 +
++      /* Readable (Type) while the client runs */
++      ChangeMode(CHANGE_FH, amiga_stats_fh, SHARED_LOCK);
 +      SDL_snprintf(line, sizeof(line),
 +                   "audio: %s, %d Hz, %d channel(s), %d samples a buffer, "
-+                   "decoders %s, SDL_MIXER_DECODER %s\n",
++                   "SDL_MIXER_DECODER %s\n",
 +                   SDL_GetCurrentAudioDriver(), freq, channels,
-+                   (int)buf_size, decoders,
++                   (int)buf_size,
 +                   SDL_GetHint("SDL_MIXER_DECODER") != nullptr
 +                   ? SDL_GetHint("SDL_MIXER_DECODER") : "(auto)");
 +      amiga_stats_write(line);

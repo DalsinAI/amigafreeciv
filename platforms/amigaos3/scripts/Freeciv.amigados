@@ -2,8 +2,12 @@
 ; starts freeciv-server beside it; settings and saves go to User/.
 ; SDL2_image decodes on the 68040 (SDL_IMAGE_DECODER=cpu): the host decode
 ; service took the lab's runtime down while the client loaded its
-; thousand-odd flag and tile pictures (2 November 2026).
+; thousand-odd flag and tile pictures (2 November 2026). Sound and music
+; (stdsounds, stdmusic) play through SDL2_mixer.module and AHI, decoded on
+; the 68040 too (SDL_MIXER_DECODER=cpu) until that fault is understood.
+; For no sound, change "-P sdl" to "-P none".
 FailAt 21
 Stack 1000000
 Set SDL_IMAGE_DECODER cpu
-freeciv-sdl2 -t trident
+Set SDL_MIXER_DECODER cpu
+freeciv-sdl2 -t trident -P sdl
