@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "policy": "Bundle data when redistribution is clearly licensed. Otherwise fetch public/freeware/shareware/demo data from the recorded upstream/public source and stage it locally without committing it to source control.",
+  "datasets": {
+    "freeciv-data": {
+      "games": ["freeciv"],
+      "availability": "in-source-tree",
+      "packaging": "bundled",
+      "source": "data/ at the pinned source commit",
+      "parts": {
+        "server": ["data/classic", "data/civ2civ3", "data/default", "data/nation", "data/helpdata.txt"],
+        "client": ["data/themes/gui-sdl2/human", "data/trident", "data/trident.tilespec", "data/misc", "data/flags", "data/buildings", "data/wonders", "data/fonts"]
+      },
+      "notes": "Freeciv's data is distributed with its source under the GPL; nothing is downloaded. Individual tilesets and themes carry their own README credits, which must be reviewed (and kept) before a RELEASE package."
+    }
+  }
+}
