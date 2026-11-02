@@ -1,22 +1,24 @@
 --- a/client/gui-sdl2/graphics.c
 +++ b/client/gui-sdl2/graphics.c
-@@ -693,6 +693,51 @@
+@@ -693,6 +693,52 @@
    return main_surface->h;
  }
  
 +#ifdef __amigaos__
++#include <stdio.h>
++
 +/**********************************************************************//**
 +  AmigaOS 3.x: F10 writes the whole window to PROGDIR:User/shot-NNN.png
-+  (SDL2_image), and the same picture again as JPEG strips of 60 lines
-+  (shot-NNN-1.jpg ...), each small enough to copy out of a test lab one
-+  file at a time. Upstream's own screenshot key (Print) is compiled out,
-+  and an Amiga has no such key.
++  (SDL2_image), and the same file again in pieces of 40000 bytes
++  (shot-NNN.png.00, .01 ...; joined end to end they are the PNG), small
++  enough to copy out of a test lab one at a time. Upstream's own
++  screenshot key (Print) is compiled out, and an Amiga has no such key.
 +**************************************************************************/
 +void amiga_screenshot(void)
 +{
 +  static int shot_nr = 1;
 +  char name[64];
-+  int y, part;
++  FILE *in;
 +
 +  if (main_surface == NULL) {
 +    return;
@@ -24,26 +26,25 @@
 +  SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d.png", shot_nr);
 +  if (IMG_SavePNG(main_surface, name) != 0) {
 +    log_error("Screenshot %s: %s", name, SDL_GetError());
-+  } else {
-+    log_normal("Screenshot %s", name);
++    return;
 +  }
-+  for (y = 0, part = 1; y < main_surface->h; y += 60, part++) {
-+    int h = main_surface->h - y < 60 ? main_surface->h - y : 60;
-+    SDL_Surface *strip =
-+      SDL_CreateRGBSurfaceFrom((Uint8 *)main_surface->pixels
-+                               + y * main_surface->pitch,
-+                               main_surface->w, h, 32, main_surface->pitch,
-+                               main_surface->format->Rmask,
-+                               main_surface->format->Gmask,
-+                               main_surface->format->Bmask,
-+                               main_surface->format->Amask);
++  log_normal("Screenshot %s", name);
++  if ((in = fopen(name, "rb")) != NULL) {
++    static char buf[40000];
++    size_t got;
++    int part = 0;
 +
-+    if (strip != NULL) {
-+      SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d-%d.jpg",
-+                   shot_nr, part);
-+      IMG_SaveJPG(strip, name, 80);
-+      SDL_FreeSurface(strip);
++    while ((got = fread(buf, 1, sizeof(buf), in)) > 0) {
++      char pname[72];
++      FILE *out;
++
++      SDL_snprintf(pname, sizeof(pname), "%s.%02d", name, part++);
++      if ((out = fopen(pname, "wb")) != NULL) {
++        fwrite(buf, 1, got, out);
++        fclose(out);
++      }
 +    }
++    fclose(in);
 +  }
 +  shot_nr++;
 +}
