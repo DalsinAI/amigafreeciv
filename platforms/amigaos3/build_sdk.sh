@@ -111,11 +111,14 @@ cp "$HERE/compat/icu/unicode/ustring.h" "$SYS/include/unicode/"
 $CC $CFLAGS_T -Wall -Wextra -I"$HERE/compat/icu" -c "$HERE/compat/icu/fc_icu_amiga.c" -o "$OUT/icu/fc_icu_amiga.o"
 $AR rcs "$SYS/lib/libfcicu.a" "$OUT/icu/fc_icu_amiga.o"
 
-# libnix's select() misses its sockets' data: compat/net bridges it to
-# WaitSelect() (patches/0006 calls it).
+# Freeciv's sockets straight on bsdsocket.library, outside libnix's
+# descriptor table, with select() as WaitSelect(): compat/net
+# (patches/0006 and 0013 call it).
 mkdir -p "$OUT/fcamiga"
-$CC $CFLAGS_T -Wall -Wextra -I"$SYS/include" -c "$HERE/compat/net/fc_amiga_select.c" -o "$OUT/fcamiga/fc_amiga_select.o"
-$AR rcs "$SYS/lib/libfcamiga.a" "$OUT/fcamiga/fc_amiga_select.o"
+cp "$HERE/compat/net/fc_amiga_net.h" "$SYS/include/"
+$CC $CFLAGS_T -Wall -Wextra -I"$SYS/include" -c "$HERE/compat/net/fc_amiga_net.c" -o "$OUT/fcamiga/fc_amiga_net.o"
+rm -f "$SYS/lib/libfcamiga.a"
+$AR rcs "$SYS/lib/libfcamiga.a" "$OUT/fcamiga/fc_amiga_net.o"
 
 # A 1 MiB stack for every program (libnix's swapstack): compat/stack.
 $CC $CFLAGS_T -c "$HERE/compat/stack/fc_stack.c" -o "$SYS/lib/fc_stack.o"

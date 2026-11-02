@@ -98,19 +98,99 @@ the build's `SDL2.module` and `SDL2_image.module` in `LIBS:GFOpenGPU/`:
   took hack access ("Established control over the server. You have command
   access level 'hack'") and drew the pregame page with the saved games the
   server offers.
-- **Then the client stops answering** (idle in the lab's profile; mouse and
-  keys do nothing), so no game was started from the client, and steps 5
-  (turns by hand, save and load from the client) and 6 (turn times with a
-  human player) are not done. The connection itself works; the client's
-  10 ms `select()` on the server socket is the suspect: libnix's socket
-  descriptors and its `select()` disagree (SelectTimeout showed sockets
-  numbered like the standard streams), and making timed waits into polls
-  did not help. Next: talk to `bsdsocket.library` directly in `netintf.c`
-  on AmigaOS (`recv`/`send`/`CloseSocket`/`WaitSelect` on the library's own
-  descriptors, bypassing libnix's descriptor table), then rerun.
+- **Then the client seemed to stop answering**: no click on the pregame
+  page did anything. The next entry has the cause, which was the mouse, not
+  the connection.
 - With the host decode service, loading the client's ~1,100 pictures took
   the lab's runtime down on the PC (glibc heap assertion); the launcher sets
   `SDL_IMAGE_DECODER=cpu`.
 
-Not shown yet: a game played from the client, save/load from the client,
-sound, turn times with a human player. This is TESTING, not RELEASE.
+### 2 November 2026: a game played from the client (steps 5 and 6)
+
+Cradle builds of `team4/freeciv-play-20261102`: `c1d867c` (patch 0013) and
+`ebdeb42` (`sdl2-patches/0011`). Both exited 0, the second in 286 s. In
+both, `freeciv-sdl2` is
+`10302aaeb638a2338197625893248a413318949fb323ae63149ab570fe89f9e8` and
+`freeciv-server` is
+`730aead6e125f9d0a0ce408081434568ea352320f3217c23862a8a9a544b1b6d`.
+`SDL2.module` is `836e3f79…` and `SDL2_image.module` is `40f73aa6…`. Same lab.
+
+**Why the client "stopped answering".** It was never the network.
+- An IntuiMessage gives the mouse relative to the window's outer corner.
+  This is true for a GimmeZeroZero window as well (OS 3.2.3, and
+  OpenIntuition since 26 October).
+- GFOpenRTG's SDL2 back end read those coordinates as inside the borders.
+  So every move and click landed the title bar's height (about 22 pixels)
+  below the pointer.
+- On the main menu, the item lit up was the one under the pointed item.
+  That was easy to miss.
+- On the pregame page, Start, Pick Nation and Back sit at the foot of the
+  window, so a click on them landed outside it.
+- Keys worked throughout. With patch 0013 alone the client behaved exactly
+  as before. TaskPeek showed both programs idle in `Wait()`, which is
+  normal between events.
+
+**The fix.**
+- `sdl2-patches/0011` takes the borders off and moves SDL's pointer to a
+  button's own position before the click. `build_sdk_sdl2.sh` applies it
+  on top of GFOpenRTG at the pinned commit.
+- The same patch is offered to GFOpenRTG in DalsinAI/gfopenrtg#171. Once
+  that is merged and the pin moves, the port's copy goes.
+- Patch 0013 stays: Freeciv's sockets use bsdsocket.library's own numbers
+  and never libnix's descriptor table. The game below ran on it. Whether
+  the old libnix sockets would also have worked once the mouse was fixed
+  was not tried.
+
+**Played by hand** (screenshots taken in the lab):
+- Launch: `Freeciv.amigados`, then Start New Game. The server was started
+  from the client. Its defaults were the civ2civ3 ruleset, a 44 x 44 map,
+  and six easy AIs plus animals.
+- Pregame: Start → turn 1, 4000 BCE, playing the Babylonians.
+- Turn 1: the Explorer explored, the Workers went on auto, and the Settlers
+  founded the first city, Babilum (OK in the city name dialog).
+- Next turns: fortified the Warriors the city built, and accepted a
+  ceasefire the Persians offered in the diplomacy dialog.
+- Shift+Return ended each turn.
+- Turn 5: Options → Save Game wrote
+  `User/saves/freeciv-T0005-Y-3800-manual.sav.gz` (46 KB). Options → Quit
+  closed the client, and the server ended with it (`Status`: neither left).
+- Relaunch: `Freeciv.amigados`, then Load Game. The list showed the manual
+  save first.
+- Loading it put Hammurabi back under the client's user, along with the
+  five AI nations.
+- Start → 3800 BCE, with the same city, units and explored map. After
+  typing in the chat line, the first click only leaves the line; the
+  second presses Start.
+- Played turns 6 to 8 after the load. On turn 8 the Mali offered a
+  ceasefire, which was accepted.
+
+**Turn times with a human player.** Each figure is from Shift+Return to the
+next turn's autosave, on the lab's emulated 68040. civ2civ3, 44 x 44, six
+easy AIs:
+
+| Turn change | Seconds |
+| --- | --- |
+| 1 → 2 | 5 |
+| 2 → 3 | 3 |
+| 3 → 4 | 3 |
+| 4 → 5 | 4 |
+| 5 → 6 (after the load) | 2 |
+| 6 → 7 | 1 to 2 |
+| 7 → 8 | 1 to 2 |
+
+The times come from the Amiga clock and the save file times, so each is
+good to about a second. These are the first turns, with one city per
+nation. Longer games will be slower.
+
+**Still not shown or not right:**
+- Sound (SDL2_mixer not used).
+- A long game, and the AI's cost late in a game.
+- A real 68040 and its memory (the client alone used about 45 MB in step
+  3; the server's use with the client was not measured).
+- In the diplomacy dialog, the left (broken) seal cancels the meeting and
+  the right one accepts. That is upstream's design, not a fault.
+- Map-scrolling speed was not measured.
+- The host decode service fault above is still open, and the launcher
+  still decodes on the 68040.
+
+This is TESTING, not RELEASE.
