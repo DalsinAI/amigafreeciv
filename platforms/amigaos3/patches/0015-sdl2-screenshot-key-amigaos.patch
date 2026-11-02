@@ -1,0 +1,63 @@
+--- a/client/gui-sdl2/graphics.c
++++ b/client/gui-sdl2/graphics.c
+@@ -693,6 +693,34 @@
+   return main_surface->h;
+ }
+ 
++#ifdef __amigaos__
++/**********************************************************************//**
++  AmigaOS 3.x: F10 writes the whole window to PROGDIR:User/shot-NNN.png
++  and .jpg (SDL2_image), for the port's lab notes. Upstream's own
++  screenshot key (Print) is compiled out, and an Amiga has no such key.
++**************************************************************************/
++void amiga_screenshot(void)
++{
++  static int shot_nr = 1;
++  char name[64];
++
++  if (main_surface == NULL) {
++    return;
++  }
++  SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d.png", shot_nr);
++  if (IMG_SavePNG(main_surface, name) != 0) {
++    log_error("Screenshot %s: %s", name, SDL_GetError());
++  } else {
++    log_normal("Screenshot %s", name);
++  }
++  SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d.jpg", shot_nr);
++  if (IMG_SaveJPG(main_surface, name, 90) != 0) {
++    log_error("Screenshot %s: %s", name, SDL_GetError());
++  }
++  shot_nr++;
++}
++#endif /* __amigaos__ */
++
+ /**************************************************************************
+                            Fill Rect with RGBA color
+ **************************************************************************/
+--- a/client/gui-sdl2/graphics.h
++++ b/client/gui-sdl2/graphics.h
+@@ -286,6 +286,9 @@
+ bool create_surfaces(int width, int height);
+ 
+ void update_main_screen(void);
++#ifdef __amigaos__
++void amiga_screenshot(void);
++#endif
+ 
+ int main_window_width(void);
+ int main_window_height(void);
+--- a/client/gui-sdl2/gui_main.c
++++ b/client/gui-sdl2/gui_main.c
+@@ -778,6 +778,11 @@
+             SDL_SaveBMP(main_data.screen, schot);
+             break;
+ #endif /* 0 */
++#ifdef __amigaos__
++          case SDLK_F10:
++            amiga_screenshot();
++            break;
++#endif /* __amigaos__ */
+ 
+           case SDLK_RSHIFT:
+             /* Right Shift is Pressed */
