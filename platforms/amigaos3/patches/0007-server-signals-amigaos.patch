@@ -1,0 +1,32 @@
+diff --git a/server/srv_signal.c b/server/srv_signal.c
+index 67f1761..d0495f8 100644
+--- a/server/srv_signal.c
++++ b/server/srv_signal.c
+@@ -125,13 +125,17 @@ void setup_interrupt_handlers(void)
+   }
+ #endif /* SIGHUP */
+ 
++#ifndef __amigaos__
++  /* AmigaOS (libnix) has only SIGINT, from Ctrl-C; a broken connection is
++   * an error from send(), never a signal. */
+   if (SIG_ERR == signal(SIGTERM, signal_handler)) {
+     fc_fprintf(stderr, _("Failed to install SIGTERM handler: %s\n"),
+                fc_strerror(fc_get_errno()));
+     exit(EXIT_FAILURE);
+   }
++#endif /* __amigaos__ */
+ 
+-#ifdef SIGPIPE
++#if defined(SIGPIPE) && !defined(__amigaos__)
+   /* Ignore SIGPIPE, the error is handled by the return value
+    * of the write call. */
+   if (SIG_ERR == signal(SIGPIPE, signal_handler)) {
+@@ -139,7 +143,7 @@ void setup_interrupt_handlers(void)
+                fc_strerror(fc_get_errno()));
+     exit(EXIT_FAILURE);
+   }
+-#endif /* SIGPIPE */
++#endif /* SIGPIPE && !__amigaos__ */
+ #endif /* USE_INTERRUPT_HANDLERS */
+ }
+ 

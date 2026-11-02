@@ -1,5 +1,5 @@
 diff --git a/meson.build b/meson.build
-index d90ea80..667ac9a 100644
+index d90ea80..346603a 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -189,6 +189,9 @@ if host_system == 'windows'
@@ -58,13 +58,14 @@ index d90ea80..667ac9a 100644
    else
      net_dep = []
    endif
-@@ -520,6 +546,13 @@ foreach func : priv_functions
+@@ -520,6 +546,14 @@ foreach func : priv_functions
    endif
  endforeach
  
 +if host_system == 'amigaos'
-+  # libnix links these, but no header the build sees declares them
-+  foreach func : ['nanosleep']
++  # libnix links these, but no header the build sees declares them, or
++  # (fork) they cannot work on AmigaOS
++  foreach func : ['nanosleep', 'fork', 'vfork']
 +    priv_conf_data.set('HAVE_' + func.underscorify().to_upper(), false)
 +  endforeach
 +endif
@@ -72,7 +73,7 @@ index d90ea80..667ac9a 100644
  priv_liblua_functions = [
    'localtime_r'
    ]
-@@ -564,7 +597,10 @@ else
+@@ -564,7 +598,10 @@ else
    bcrypt_lib_dep = []
  endif
  
@@ -84,7 +85,7 @@ index d90ea80..667ac9a 100644
                             dependencies: net_dep,
                             args: ['-O'])
    priv_conf_data.set('HAVE_GETADDRINFO', 1)
-@@ -1010,12 +1046,17 @@ endif
+@@ -1010,12 +1047,17 @@ endif
  if host_system == 'emscripten'
    curl_dep = []
    m_dep = []
