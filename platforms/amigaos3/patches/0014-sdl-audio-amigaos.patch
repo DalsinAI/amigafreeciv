@@ -1,0 +1,220 @@
+--- a/client/audio_sdl.c
++++ b/client/audio_sdl.c
+@@ -53,10 +53,96 @@
+  * such as a delay before playing the sound. */
+ #ifdef FREECIV_MSWINDOWS
+ const size_t buf_size = 4096;
++#elif defined(__amigaos__) && !defined(AUDIO_SDL3)
++/* AmigaOS 3.x: SDL plays through AHI. With 1024 samples (23 ms) the
++ * mixer's buffers in the lab came up to 72 ms apart and a few short in
++ * five seconds; with 4096 (93 ms, as on Windows) they kept time. SetEnv
++ * FREECIV_AUDIOBUFFER sets another size (256 to 16384), for measuring. */
++static size_t buf_size = 4096;
+ #else
+ const size_t buf_size = 1024;
+ #endif
+ 
++#if defined(__amigaos__) && !defined(AUDIO_SDL3)
++#include <stdlib.h>
++#include <proto/dos.h>
++
++/* SetEnv FREECIV_AUDIOSTATS to a file name (RAM:audio.txt): the mixer's
++ * buffers go there every five seconds, the number mixed against the number
++ * the device plays in that time and the gaps between them, and so does the
++ * time each sound or music took to load. Fewer buffers than expected, or a
++ * worst gap well past a buffer's time, means sound was late. The lab is
++ * muted; this is how its sound is checked. */
++static BPTR amiga_stats_fh = 0;
++static int amiga_freq = 1, amiga_channels = 1;
++static Uint64 amiga_last, amiga_prev, amiga_gap_sum, amiga_gap_max;
++static Uint32 amiga_bufs, amiga_gaps;
++
++static void amiga_stats_write(const char *line)
++{
++  if (amiga_stats_fh) {
++    Write(amiga_stats_fh, (APTR)line, strlen(line));
++  }
++}
++
++/* Mix_SetPostMix: called in SDL's audio thread after each buffer is mixed */
++static void amiga_stats_postmix(void *udata, Uint8 *stream, int len)
++{
++  Uint64 now = SDL_GetPerformanceCounter();
++  Uint64 pf = SDL_GetPerformanceFrequency();
++
++  (void)udata;
++  (void)stream;
++  amiga_bufs++;
++  if (amiga_prev != 0) {
++    Uint64 gap = now - amiga_prev;
++
++    amiga_gap_sum += gap;
++    amiga_gaps++;
++    if (gap > amiga_gap_max) {
++      amiga_gap_max = gap;
++    }
++  }
++  amiga_prev = now;
++  if (amiga_last == 0) {
++    amiga_last = now;
++    amiga_bufs = 0;
++  } else if (now - amiga_last >= 5 * pf) {
++    char line[200];
++    Uint32 frames = len / (2 * amiga_channels);   /* 16-bit samples */
++    Uint32 ms = (Uint32)((now - amiga_last) * 1000 / pf);
++    Uint32 expect = (Uint32)((Uint64)ms * amiga_freq / frames / 1000);
++    Uint32 buf_us = (Uint32)((Uint64)frames * 1000000 / amiga_freq);
++
++    SDL_snprintf(line, sizeof(line),
++                 "audio: %u buffers in %u ms (%u expected), "
++                 "gap mean %u us, worst %u us, buffer %u us\n",
++                 (unsigned)amiga_bufs, (unsigned)ms, (unsigned)expect,
++                 (unsigned)(amiga_gaps ? amiga_gap_sum * 1000000 / pf / amiga_gaps : 0),
++                 (unsigned)(amiga_gap_max * 1000000 / pf), (unsigned)buf_us);
++    amiga_stats_write(line);
++    amiga_bufs = 0;
++    amiga_gaps = 0;
++    amiga_gap_sum = amiga_gap_max = 0;
++    amiga_last = now;
++  }
++}
++
++static void amiga_stats_load(const char *what, const char *path,
++                             Uint64 start, bool ok)
++{
++  if (amiga_stats_fh) {
++    char line[300];
++    Uint64 took = SDL_GetPerformanceCounter() - start;
++
++    SDL_snprintf(line, sizeof(line), "load %s %s: %u ms%s\n", what, path,
++                 (unsigned)(took * 1000 / SDL_GetPerformanceFrequency()),
++                 ok ? "" : " FAILED");
++    amiga_stats_write(line);
++  }
++}
++#endif /* __amigaos__ && !AUDIO_SDL3 */
++
+ #ifdef AUDIO_SDL3
+ #define MIX_CHANNELS 8
+ static MIX_Audio *mus = nullptr;
+@@ -152,7 +238,16 @@
+ #ifdef AUDIO_SDL3
+     mus = MIX_LoadAudio(mixer, fullpath, FALSE);
+ #else  /* AUDIO_SDL3 */
++#ifdef __amigaos__
++    {
++      Uint64 start = SDL_GetPerformanceCounter();
++
++      mus = Mix_LoadMUS(fullpath);
++      amiga_stats_load("music", fullpath, start, mus != nullptr);
++    }
++#else  /* __amigaos__ */
+     mus = Mix_LoadMUS(fullpath);
++#endif /* __amigaos__ */
+ #endif /* AUDIO_SDL3 */
+     if (mus == nullptr) {
+       log_error("Can't open file \"%s\": %s",
+@@ -207,7 +302,16 @@
+ #ifdef AUDIO_SDL3
+     wave = MIX_LoadAudio(mixer, fullpath, FALSE);
+ #else  /* AUDIO_SDL3 */
++#ifdef __amigaos__
++    {
++      Uint64 start = SDL_GetPerformanceCounter();
++
++      wave = Mix_LoadWAV(fullpath);
++      amiga_stats_load("sound", fullpath, start, wave != nullptr);
++    }
++#else  /* __amigaos__ */
+     wave = Mix_LoadWAV(fullpath);
++#endif /* __amigaos__ */
+ #endif /* AUDIO_SDL3 */
+     if (wave == nullptr) {
+       log_error("Can't open file \"%s\"", fullpath);
+@@ -406,7 +510,29 @@
+   Mix_HaltMusic();
+   Mix_FreeMusic(mus);
+ 
++#ifdef __amigaos__
++  if (amiga_stats_fh) {
++    char line[200] = "audio: music decoders used:";
++    int d;
++
++    /* SDL2_mixer opens a decoder when it first needs it */
++    for (d = 0; d < Mix_GetNumMusicDecoders(); d++) {
++      fc_strlcat(line, " ", sizeof(line));
++      fc_strlcat(line, Mix_GetMusicDecoder(d), sizeof(line));
++    }
++    fc_strlcat(line, "\n", sizeof(line));
++    amiga_stats_write(line);
++  }
++  Mix_SetPostMix(nullptr, nullptr);
++#endif
+   Mix_CloseAudio();
++#ifdef __amigaos__
++  if (amiga_stats_fh) {
++    amiga_stats_write("audio: closed\n");
++    Close(amiga_stats_fh);
++    amiga_stats_fh = 0;
++  }
++#endif
+ #endif /* AUDIO_SDL3 */
+ 
+   quit_sdl_audio();
+@@ -437,6 +563,16 @@
+   const int audio_format = MIX_DEFAULT_FORMAT;
+   const int audio_channels = 2;
+ 
++#ifdef __amigaos__
++  {
++    const char *e = getenv("FREECIV_AUDIOBUFFER");
++
++    if (e != nullptr && atoi(e) >= 256 && atoi(e) <= 16384) {
++      buf_size = atoi(e);
++    }
++  }
++#endif /* __amigaos__ */
++
+   if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, buf_size) < 0) {
+     log_error("Error calling Mix_OpenAudio");
+ #endif /* AUDIO_SDL3 */
+@@ -452,6 +588,39 @@
+                         "MIX_PROP_PLAY_LOOPS_NUMBER", -1);
+ #else  /* AUDIO_SDL3 */
+   Mix_AllocateChannels(MIX_CHANNELS);
++#ifdef __amigaos__
++  {
++    int freq = 0, channels = 0;
++    Uint16 format = 0;
++    const char *stats = getenv("FREECIV_AUDIOSTATS");
++
++    Mix_QuerySpec(&freq, &format, &channels);
++    log_normal("Audio: %s, %d Hz, %d channel(s), format 0x%04x, "
++               "%d samples a buffer",
++               SDL_GetCurrentAudioDriver(), freq, channels,
++               (unsigned)format, (int)buf_size);
++    if (freq > 0 && channels > 0) {
++      amiga_freq = freq;
++      amiga_channels = channels;
++    }
++    if (stats != nullptr && stats[0] != '\0'
++        && (amiga_stats_fh = Open((STRPTR)stats, MODE_NEWFILE)) != 0) {
++      char line[200];
++
++      /* Readable (Type) while the client runs */
++      ChangeMode(CHANGE_FH, amiga_stats_fh, SHARED_LOCK);
++      SDL_snprintf(line, sizeof(line),
++                   "audio: %s, %d Hz, %d channel(s), %d samples a buffer, "
++                   "SDL_MIXER_DECODER %s\n",
++                   SDL_GetCurrentAudioDriver(), freq, channels,
++                   (int)buf_size,
++                   SDL_GetHint("SDL_MIXER_DECODER") != nullptr
++                   ? SDL_GetHint("SDL_MIXER_DECODER") : "(auto)");
++      amiga_stats_write(line);
++      Mix_SetPostMix(amiga_stats_postmix, nullptr);
++    }
++  }
++#endif /* __amigaos__ */
+ #endif /* AUDIO_SDL3 */
+   for (i = 0; i < MIX_CHANNELS; i++) {
+ #ifdef AUDIO_SDL3
