@@ -24,6 +24,29 @@ if [[ -n "${STOVE:-}" && -f "$STOVE/provenance.json" ]]; then
     python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print('stove release', r.get('release'), r.get('archive_sha256'))" "$STOVE/provenance.json" || true
 fi
 echo "host: $(uname -srm), $(nproc) cores"
+# On failure: the logs into the job's own log, and no work tree left in OUT.
+trap 'rc=$?; for l in "$WORK"/game/configure.log "$WORK"/game/build.log; do
+        [[ -f $l ]] && { echo "--- $l"; tail -60 "$l"; }; done
+      rm -rf "$WORK"; exit $rc' ERR
+
+# Host tools: the Meson and ninja this port was developed with, pinned, in
+# a virtual environment in WORK; pkg-config from the PC, or pinned too.
+TOOLS=(meson==1.12.1 ninja==1.11.1.1)
+command -v pkg-config >/dev/null || TOOLS+=(pkgconf==2.3.0.post1)
+if python3 -m venv "$WORK/venv" 2>/dev/null; then
+    "$WORK/venv/bin/pip" install -q --disable-pip-version-check "${TOOLS[@]}"
+else
+    # No venv module on this PC: the same packages, installed beside WORK
+    python3 -m pip install -q --disable-pip-version-check --target "$WORK/venv/lib" "${TOOLS[@]}"
+    mkdir -p "$WORK/venv/bin"
+    for t in meson ninja pkgconf; do
+        [[ -e "$WORK/venv/lib/bin/$t" ]] && printf '#!/bin/sh\nPYTHONPATH="%s" exec python3 "%s" "$@"\n' \
+            "$WORK/venv/lib" "$WORK/venv/lib/bin/$t" > "$WORK/venv/bin/$t" && chmod +x "$WORK/venv/bin/$t"
+    done
+fi
+export PATH="$WORK/venv/bin:$PATH"
+command -v pkg-config >/dev/null || ln -s "$(command -v pkgconf)" "$WORK/venv/bin/pkg-config"
+echo "tools: meson $(meson --version), ninja $(ninja --version), pkg-config $(pkg-config --version)"
 
 [[ -f "$WORK/sdk/sdk.env" ]] || nice -n 19 bash "$HERE/build_sdk.sh" "$WORK/sdk"
 echo "sdk ready after $(( $(date +%s) - START )) s"
