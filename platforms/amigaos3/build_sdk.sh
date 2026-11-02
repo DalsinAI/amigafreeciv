@@ -10,6 +10,7 @@
 #     the open3 release predates;
 #   - zlib 1.3.1, static;
 #   - compat/icu: the four ICU string calls Freeciv makes (not ICU);
+#   - compat/net: select() for libnix's sockets through WaitSelect();
 #   - a host `tolua` from Freeciv's own dependencies/ (the cross build runs it);
 #   - with FREECIV_SDK_SDL2=1: GFOpenRTG's SDL2.module, SDL2_image.module and
 #     link stubs, and SDL2_ttf (with FreeType) linked in.
@@ -108,6 +109,12 @@ mkdir -p "$SYS/include/unicode" "$OUT/icu"
 cp "$HERE/compat/icu/unicode/ustring.h" "$SYS/include/unicode/"
 $CC $CFLAGS_T -Wall -Wextra -I"$HERE/compat/icu" -c "$HERE/compat/icu/fc_icu_amiga.c" -o "$OUT/icu/fc_icu_amiga.o"
 $AR rcs "$SYS/lib/libfcicu.a" "$OUT/icu/fc_icu_amiga.o"
+
+# libnix's select() misses its sockets' data: compat/net bridges it to
+# WaitSelect() (patches/0006 calls it).
+mkdir -p "$OUT/fcamiga"
+$CC $CFLAGS_T -Wall -Wextra -I"$SYS/include" -c "$HERE/compat/net/fc_amiga_select.c" -o "$OUT/fcamiga/fc_amiga_select.o"
+$AR rcs "$SYS/lib/libfcamiga.a" "$OUT/fcamiga/fc_amiga_select.o"
 
 pc() {  # name version cflags libs
     printf 'Name: %s\nDescription: %s for the Freeciv AmigaOS 3.x build\nVersion: %s\nCflags: %s\nLibs: %s\n' \
