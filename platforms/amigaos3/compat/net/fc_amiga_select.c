@@ -47,6 +47,14 @@ int fc_amiga_select(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *tv)
     f = _lx_fhfromfd(fd);
     if (!f || !(f->lx_flags & LX_SOCKET) || !SocketBase
         || f->lx_sock < 0 || f->lx_sock >= FD_SETSIZE) {
+      static int warned;
+
+      if (!warned) {
+        warned = 1;
+        fprintf(stderr, "fc_amiga_select: descriptor %d is not a socket"
+                " (flags %d, socket %d); using libnix's select()\n", fd,
+                f ? f->lx_flags : -1, f ? f->lx_sock : -1);
+      }
       return select(n, r, w, e, tv);
     }
     if (ir) FD_SET(f->lx_sock, &sr);

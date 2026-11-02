@@ -23,7 +23,12 @@ static int bsd(int fd)
 {
   StdFileDes *f = _lx_fhfromfd(fd);
 
-  return f != NULL ? f->lx_sock : -1;
+  if (f == NULL || !(f->lx_flags & LX_SOCKET)) {
+    printf("fd %d is not one of libnix's sockets (flags %d)\n", fd,
+           f != NULL ? f->lx_flags : -1);
+    return -1;
+  }
+  return f->lx_sock;
 }
 
 static long ms_since(const struct timeval *t0)
@@ -57,6 +62,9 @@ int main(void)
   long ls, cs, as;
   socklen_t len = sizeof(a);
 
+  /* stdout first, so libnix's standard descriptors are taken */
+  printf("SelectTimeout\n");
+  fflush(stdout);
   if (SocketBase == NULL) {
     printf("no bsdsocket.library\n");
     return 20;
@@ -78,6 +86,9 @@ int main(void)
   as = accept(ls, (struct sockaddr *) &a, &len);
   printf("libnix fds: listen %ld, client %ld, accepted %ld; bsdsocket %d %d %d\n",
          ls, cs, as, bsd(ls), bsd(cs), bsd(as));
+  if (bsd(cs) < 0 || bsd(as) < 0) {
+    return 20;
+  }
   probe(bsd(cs), 0, "WaitSelect idle");
   probe(bsd(cs), 10000, "WaitSelect idle");
   probe(bsd(cs), 500000, "WaitSelect idle");
