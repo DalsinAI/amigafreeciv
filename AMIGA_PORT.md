@@ -1,6 +1,6 @@
 # Amiga port intake: Freeciv
 
-- Port Atlas: [g-freeciv](https://www.amigachrome.com/ports/#g-freeciv)
+- Port Atlas: [g-freeciv](https://www.amicradle.com/ports/#g-freeciv)
 - Priority: `P2`
 - Atlas decision: `evaluate`
 - Upstream source: `https://github.com/freeciv/freeciv`
