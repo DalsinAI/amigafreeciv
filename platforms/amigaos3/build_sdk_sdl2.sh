@@ -41,7 +41,14 @@ shallow() {  # url dir commit: one commit, no history
 }
 
 SDLOUT=$OUT/sdl2
-if [[ -f "$OUT/SDL2-SHA256SUMS" ]] && (cd "$SDLOUT" && sha256sum --check --status "$OUT/SDL2-SHA256SUMS"); then
+# The port's own fixes to GFOpenRTG's SDL2 back end at OPENRTG_COMMIT
+# (sdl2-patches/, applied after GFOpenRTG's patches/amigaos3), until
+# GFOpenRTG has them. A built SDL2 is reused only with the same fixes.
+PORT_SDL2_PATCHES=("$HERE"/sdl2-patches/*.patch)
+PORT_SDL2_STAMP=$( (cat "${PORT_SDL2_PATCHES[@]}" 2>/dev/null; echo "$OPENRTG_COMMIT") | sha256sum | cut -d' ' -f1)
+if [[ -f "$OUT/SDL2-SHA256SUMS" && -f "$OUT/SDL2-PORT-PATCHES" ]] \
+   && [[ "$(cat "$OUT/SDL2-PORT-PATCHES")" == "$PORT_SDL2_STAMP" ]] \
+   && (cd "$SDLOUT" && sha256sum --check --status "$OUT/SDL2-SHA256SUMS"); then
     echo "SDL2 already built in $SDLOUT"
 else
 # 1. CyberGraphX and AHI developer headers from the pinned AROS tree.
@@ -83,6 +90,11 @@ RTG=$OUT/gfopenrtg
 shallow https://github.com/DalsinAI/gfopenrtg.git "$RTG" $OPENRTG_COMMIT
 git -C "$RTG" checkout -q "$OPENRTG_COMMIT"
 SDLDIR=$RTG/library/modules/sdl2
+# GFOpenRTG's build.sh applies patches/amigaos3/*.patch in name order: the
+# port's fixes go in beside them, numbered after GFOpenRTG's own.
+for p in "${PORT_SDL2_PATCHES[@]}"; do
+    [[ -f "$p" ]] && cp "$p" "$SDLDIR/patches/amigaos3/$(basename "$p")"
+done
 STOVE=$PREFIX SDK_HEADERS=$H VASM=$OUT/vasm/vasmm68k_mot TARBALLS=$OUT/downloads JOBS=$JOBS \
     sh "$SDLDIR/build.sh" "$SDLOUT" module stub
 pin() { python3 -c "import json,sys; print(json.load(open('$SDLDIR/UPSTREAM.json'))[sys.argv[1]][sys.argv[2]])" "$1" "$2"; }
@@ -102,6 +114,7 @@ python3 "$SDLDIR/fpcr_check.py" "$PREFIX/bin/m68k-amigaos-objdump" \
     "$SDLOUT/libSDL2_image.a" "$SDLOUT/libSDL2_ttf.a"
 
 (cd "$SDLOUT" && sha256sum SDL2.module SDL2_image.module libSDL2.a libSDL2_image.a libSDL2_ttf.a) > "$OUT/SDL2-SHA256SUMS"
+echo "$PORT_SDL2_STAMP" > "$OUT/SDL2-PORT-PATCHES"
 fi
 
 # 4. Into the sysroot, with pkg-config files for Meson.
