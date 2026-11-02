@@ -45,16 +45,31 @@ for part in $PARTS; do
         *) echo "unknown part: $part" >&2; exit 2 ;;
     esac
 done
-SOURCE_DATE_EPOCH=$EPOCH meson setup "$OUT/build" "$TREE" --cross-file "$CROSS" \
+# The SDK's cross file with this tree's -ffile-prefix-map added to its
+# c_args: a -Dc_args on the command line would replace the cross file's CPU,
+# FPU and runtime flags, not add to them.
+python3 - "$CROSS" "$OUT/cross.ini" "-ffile-prefix-map=$TREE=." <<'PY'
+import re, sys
+text = open(sys.argv[1]).read()
+for key in ("c_args", "cpp_args"):
+    text = re.sub(r"^(%s = \[.*)\]$" % key, lambda m: m.group(1) + ", '%s']" % sys.argv[3],
+                  text, count=1, flags=re.M)
+open(sys.argv[2], "w").write(text)
+PY
+grep -q -- "-m68881" "$OUT/cross.ini"
+SOURCE_DATE_EPOCH=$EPOCH meson setup "$OUT/build" "$TREE" --cross-file "$OUT/cross.ini" \
     --buildtype=release -Dprefix=/freeciv -Ddefault_library=static \
     -Db_staticpic=false -Db_pie=false \
-    -Dc_args="-ffile-prefix-map=$TREE=." \
     -Dserver=$SERVER -Dclients="$CLIENTS" -Dfcmp=[] -Dtools=[] \
     -Dnls=false -Daudio=none -Dreadline=false -Dfcdb=[] -Daimodules=classic \
     -Dmwand=false -Dsyslua=false -Djson-protocol=false -Dsvgflags=false \
     > "$OUT/configure.log" 2>&1 || { tail -40 "$OUT/configure.log"; exit 4; }
 SOURCE_DATE_EPOCH=$EPOCH ninja -C "$OUT/build" -j"$JOBS" "${TARGETS[@]}" > "$OUT/build.log" 2>&1 \
     || { grep -E "error|Error|FAILED" "$OUT/build.log" | head -40; exit 5; }
+
+# Every object must have been built for the 68040 with its FPU
+grep -A4 "utility_genhash.c.o: c_COMPILER" "$OUT/build/build.ninja" | grep -q -- "-m68881" \
+    || { echo "CPU flags missing from the compile commands" >&2; exit 6; }
 
 # The diagnostic tools in tests/, against the same library.
 mkdir -p "$OUT/tests"
