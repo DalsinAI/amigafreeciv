@@ -1,19 +1,22 @@
 --- a/client/gui-sdl2/graphics.c
 +++ b/client/gui-sdl2/graphics.c
-@@ -693,6 +693,34 @@
+@@ -693,6 +693,51 @@
    return main_surface->h;
  }
  
 +#ifdef __amigaos__
 +/**********************************************************************//**
 +  AmigaOS 3.x: F10 writes the whole window to PROGDIR:User/shot-NNN.png
-+  and .jpg (SDL2_image), for the port's lab notes. Upstream's own
-+  screenshot key (Print) is compiled out, and an Amiga has no such key.
++  (SDL2_image), and the same picture again in strips of 120 lines
++  (shot-NNN-1.png ...), each small enough to copy out of a test lab one
++  file at a time. Upstream's own screenshot key (Print) is compiled out,
++  and an Amiga has no such key.
 +**************************************************************************/
 +void amiga_screenshot(void)
 +{
 +  static int shot_nr = 1;
 +  char name[64];
++  int y, part;
 +
 +  if (main_surface == NULL) {
 +    return;
@@ -24,9 +27,23 @@
 +  } else {
 +    log_normal("Screenshot %s", name);
 +  }
-+  SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d.jpg", shot_nr);
-+  if (IMG_SaveJPG(main_surface, name, 90) != 0) {
-+    log_error("Screenshot %s: %s", name, SDL_GetError());
++  for (y = 0, part = 1; y < main_surface->h; y += 120, part++) {
++    int h = main_surface->h - y < 120 ? main_surface->h - y : 120;
++    SDL_Surface *strip =
++      SDL_CreateRGBSurfaceFrom((Uint8 *)main_surface->pixels
++                               + y * main_surface->pitch,
++                               main_surface->w, h, 32, main_surface->pitch,
++                               main_surface->format->Rmask,
++                               main_surface->format->Gmask,
++                               main_surface->format->Bmask,
++                               main_surface->format->Amask);
++
++    if (strip != NULL) {
++      SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d-%d.png",
++                   shot_nr, part);
++      IMG_SavePNG(strip, name);
++      SDL_FreeSurface(strip);
++    }
 +  }
 +  shot_nr++;
 +}
