@@ -57,4 +57,32 @@ go to `PROGDIR:User` (beside the programs).
 
 ## Observed
 
-Nothing observed yet; see the pull requests that add each step.
+### 2 November 2026: the server, headless (step 2)
+
+Cradle `stove_build` of `team4/freeciv-server-20261102` at `8098c32`
+(`os32-gcc16` job, 241 s on the build PC; the build fetches and checks its own
+open3 compiler). `freeciv-server` SHA-256
+`a9a1627ea16b2f9cf19391ae85561d98bd18662ea1f70c6bd6c33c9fb5c84b43`;
+`receipt.json` has the patch and unstripped hashes. The same build here gave
+the same executable bytes as the Cradle's.
+
+Lab `lab:freeciv` (a copy of Instance-32, AmigaOS 3.2 Kickstart 47.100,
+`bsdsocket.library` 4.4 = GFOpenSocket, about 500 MB Fast RAM free), muted:
+`ServerTest.amigados` loaded the classic ruleset with its ~570 nation files,
+listened on 127.0.0.1:5599 through GFOpenSocket, created a 30 x 40 map, three
+easy AIs played turns 1 to 5, the game ended at the turn limit, every turn was
+saved (`auto-T0001.sav.gz` ... `T0006`, 15 to 17 KB each) and the server
+exited by itself (`-e`). Start to the first save took 17 s, each AI turn 1 to
+2 s at this size. The same run in a CON: window was screenshotted in the lab.
+
+What it took (each now a patch or a compat part): no `fork`, `fcntl`
+non-blocking or SIGTERM on libnix; libnix `select()` misses socket data
+(WaitSelect bridge); `exec/io.h`'s `CMD_RESET`; Amiga paths and `;` as the
+path separator; and the UTF-8 string helpers without the UTF-16 round trip.
+One build-script fault cost the most: a `-Dc_args` that silently dropped
+`-m68040 -m68881`, so the first lab builds were 68000 soft-float code that
+ran out of memory building a hash table (the build now checks the flags).
+
+Not shown yet: a client connecting, a human game, loading a save into a
+running game, sound, and any timing beyond these first turns. This is TESTING,
+not RELEASE.
