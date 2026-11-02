@@ -1,0 +1,35 @@
+diff --git a/client/gui-sdl2/connectdlg.c b/client/gui-sdl2/connectdlg.c
+index 401ec65..dba2b6f 100644
+--- a/client/gui-sdl2/connectdlg.c
++++ b/client/gui-sdl2/connectdlg.c
+@@ -271,13 +271,24 @@ void popup_connection_dialog(bool lan_scan)
+   /* Create server list */
+   srvrs = sdl_create_server_list(lan_scan);
+ 
+-  /* Copy list */
++  /* Copy list. No list at all (the scan could not start or found
++   * nothing) is the same as an empty one. */
+   server_list = server_list_new();
+-  fc_mutex_allocate(&srvrs->mutex);
+-  server_list_iterate(srvrs->servers, pserver) {
+-    server_list_append(server_list, pserver);
+-  } server_list_iterate_end;
+-  fc_mutex_release(&srvrs->mutex);
++  if (srvrs != nullptr) {
++    fc_mutex_allocate(&srvrs->mutex);
++    server_list_iterate(srvrs->servers, pserver) {
++      server_list_append(server_list, pserver);
++    } server_list_iterate_end;
++    fc_mutex_release(&srvrs->mutex);
++  }
++  if (server_list_size(server_list) == 0) {
++    server_list_destroy(server_list);
++    server_list = nullptr;
++    if (server_scan != nullptr) {
++      server_scan_finish(server_scan);
++      server_scan = nullptr;
++    }
++  }
+ 
+   /* Clear label */
+   popdown_window_group_dialog(new_widget, label_window);

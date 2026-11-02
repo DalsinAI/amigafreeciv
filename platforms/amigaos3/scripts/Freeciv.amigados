@@ -1,0 +1,9 @@
+; Freeciv: the SDL2 client, with the 2D trident tileset. "Start New Game"
+; starts freeciv-server beside it; settings and saves go to User/.
+; SDL2_image decodes on the 68040 (SDL_IMAGE_DECODER=cpu): the host decode
+; service took the lab's runtime down while the client loaded its
+; thousand-odd flag and tile pictures (2 November 2026).
+FailAt 21
+Stack 1000000
+Set SDL_IMAGE_DECODER cpu
+freeciv-sdl2 -t trident
