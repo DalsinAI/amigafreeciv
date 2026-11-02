@@ -15,7 +15,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 : "${OUT:?OUT must be set}"
 mkdir -p "$OUT"
 WORK=${FREECIV_WORK:-$OUT/.work}
-PARTS=${FREECIV_PARTS:-server}
+PARTS=${FREECIV_PARTS:-server client}
 mkdir -p "$WORK"
 START=$(date +%s)
 
