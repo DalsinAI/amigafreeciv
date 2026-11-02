@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "ports": {
+    "freeciv": {
+      "title": "Freeciv",
+      "atlas": "g-freeciv",
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/freeciv/freeciv.git",
+        "commit": "900908ae2c3b7ce69352edb4188036f9d576960f",
+        "submodules": false,
+        "inRepository": true
+      },
+      "parts": ["freeciv-server", "freeciv-sdl2"],
+      "contentPolicy": "GPL-2.0-or-later engine. The rulesets, nations, tilesets and themes it needs are part of the upstream source tree and are packaged from it; no external game data.",
+      "runtimeData": {
+        "mode": "bundled-from-source",
+        "manifest": "gameports/runtime-data.json"
+      }
+    }
+  }
+}

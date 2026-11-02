@@ -1,0 +1,10 @@
+{
+  "name": "freeciv",
+  "url": "https://github.com/freeciv/freeciv.git",
+  "upstream_commit": "900908ae2c3b7ce69352edb4188036f9d576960f",
+  "upstream_date": "2026-11-01",
+  "upstream_version": "3.3.90.17-dev (3.4 development)",
+  "import_commit": "350371e99f2b6c66b3d4ebd5aff09afe4d293d97",
+  "source_verified": "On 2 November 2026 this repository's tree (git ls-tree -r) matched upstream 900908ae exactly, apart from .github/ and AMIGA_PORT.md.",
+  "licence": "GPL-2.0-or-later"
+}
