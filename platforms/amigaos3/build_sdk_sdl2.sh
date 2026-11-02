@@ -8,7 +8,14 @@
 #     the AROS tree at AROS_REF (cybergraphics calls via conf_to_sfd.py);
 #   - vasm, for SDL's c2p and blitter sources;
 #   - GFOpenRTG's SDL2.module and libSDL2.a (link stub), SDL2_image.module
-#     and libSDL2_image.a, and libSDL2_ttf.a with FreeType built in.
+#     and libSDL2_image.a, SDL2_mixer.module and libSDL2_mixer.a (Ogg Vorbis
+#     through stb_vorbis, WAV, and libxmp's tracker formats, all built in),
+#     and libSDL2_ttf.a with FreeType built in.
+# GFOpenRTG at OPENRTG_COMMIT is main after DalsinAI/gfopenrtg#173: SDL's
+# threads get 256 KB stacks, and SDL's audio device closes from any task
+# (Freeciv opens and closes it on the main task, but the mixer's audio
+# thread is SDL's). #171, the mouse fix the port carried as
+# sdl2-patches/0011, is in it.
 # Expects build_sdk.sh's variables in the environment of the caller's file:
 #
 #   bash build_sdk_sdl2.sh SDK_DIR
@@ -24,7 +31,7 @@ NDKINC=$PREFIX/m68k-amigaos/ndk-include
 AROS_REPOSITORY=https://github.com/aros-development-team/AROS.git
 AROS_REF=c8860e674d7c5fbab304e2bf201f7a9c81c98629
 VASM_COMMIT=a13e7e728a3dd5a9ba468bf479119e0bc23e70fd
-OPENRTG_COMMIT=bbf126e28e3035db7bebd1b71c636f7b8fcdb162
+OPENRTG_COMMIT=210df77692fa620cba1bdad96dfdac1d333b3123
 
 fetch() {  # url file sha256
     if [[ ! -f "$2" ]]; then
@@ -44,8 +51,11 @@ SDLOUT=$OUT/sdl2
 # The port's own fixes to GFOpenRTG's SDL2 back end at OPENRTG_COMMIT
 # (sdl2-patches/, applied after GFOpenRTG's patches/amigaos3), until
 # GFOpenRTG has them. A built SDL2 is reused only with the same fixes.
+# None at present.
+shopt -s nullglob
 PORT_SDL2_PATCHES=("$HERE"/sdl2-patches/*.patch)
-PORT_SDL2_STAMP=$( (cat "${PORT_SDL2_PATCHES[@]}" 2>/dev/null; echo "$OPENRTG_COMMIT") | sha256sum | cut -d' ' -f1)
+shopt -u nullglob
+PORT_SDL2_STAMP=$( (for p in "${PORT_SDL2_PATCHES[@]}"; do cat "$p"; done; echo "$OPENRTG_COMMIT") | sha256sum | cut -d' ' -f1)
 if [[ -f "$OUT/SDL2-SHA256SUMS" && -f "$OUT/SDL2-PORT-PATCHES" ]] \
    && [[ "$(cat "$OUT/SDL2-PORT-PATCHES")" == "$PORT_SDL2_STAMP" ]] \
    && (cd "$SDLOUT" && sha256sum --check --status "$OUT/SDL2-SHA256SUMS"); then
@@ -85,7 +95,7 @@ shallow https://github.com/mbitsnbites/vasm-mirror.git "$OUT/vasm" $VASM_COMMIT
 git -C "$OUT/vasm" checkout -q "$VASM_COMMIT"
 make -s -C "$OUT/vasm" CPU=m68k SYNTAX=mot -j"$JOBS" >/dev/null
 
-# 3. GFOpenRTG's SDL2, SDL2_image and SDL2_ttf (FreeType inside).
+# 3. GFOpenRTG's SDL2, SDL2_image, SDL2_mixer and SDL2_ttf (FreeType inside).
 RTG=$OUT/gfopenrtg
 shallow https://github.com/DalsinAI/gfopenrtg.git "$RTG" $OPENRTG_COMMIT
 git -C "$RTG" checkout -q "$OPENRTG_COMMIT"
@@ -108,18 +118,20 @@ for lib in sdl2_image sdl2_mixer sdl2_ttf sdl2_net freetype libxmp; do
     done
 done
 make -s -f "$SDLDIR/satellites/Makefile" -j"$JOBS" STOVE="$PREFIX" OUT="$SDLOUT" WORK="$SDLOUT/sdl2-work" \
-    headers abi "$SDLOUT/SDL2_image.module" "$SDLOUT/libSDL2_image.a" "$SDLOUT/libSDL2_ttf.a"
+    headers abi "$SDLOUT/SDL2_image.module" "$SDLOUT/libSDL2_image.a" \
+    "$SDLOUT/SDL2_mixer.module" "$SDLOUT/libSDL2_mixer.a" "$SDLOUT/libSDL2_ttf.a"
 python3 "$SDLDIR/fpcr_check.py" "$PREFIX/bin/m68k-amigaos-objdump" \
-    "$SDLOUT/SDL2.module" "$SDLOUT/SDL2_image.module" "$SDLOUT/libSDL2.a" \
-    "$SDLOUT/libSDL2_image.a" "$SDLOUT/libSDL2_ttf.a"
+    "$SDLOUT/SDL2.module" "$SDLOUT/SDL2_image.module" "$SDLOUT/SDL2_mixer.module" "$SDLOUT/libSDL2.a" \
+    "$SDLOUT/libSDL2_image.a" "$SDLOUT/libSDL2_mixer.a" "$SDLOUT/libSDL2_ttf.a"
 
-(cd "$SDLOUT" && sha256sum SDL2.module SDL2_image.module libSDL2.a libSDL2_image.a libSDL2_ttf.a) > "$OUT/SDL2-SHA256SUMS"
+(cd "$SDLOUT" && sha256sum SDL2.module SDL2_image.module SDL2_mixer.module \
+    libSDL2.a libSDL2_image.a libSDL2_mixer.a libSDL2_ttf.a) > "$OUT/SDL2-SHA256SUMS"
 echo "$PORT_SDL2_STAMP" > "$OUT/SDL2-PORT-PATCHES"
 fi
 
 # 4. Into the sysroot, with pkg-config files for Meson.
 cp -a "$SDLOUT/include/SDL2" "$SYS/include/"
-cp "$SDLOUT/libSDL2.a" "$SDLOUT/libSDL2_image.a" "$SDLOUT/libSDL2_ttf.a" "$SYS/lib/"
+cp "$SDLOUT/libSDL2.a" "$SDLOUT/libSDL2_image.a" "$SDLOUT/libSDL2_mixer.a" "$SDLOUT/libSDL2_ttf.a" "$SYS/lib/"
 pc() {  # name version cflags libs
     printf 'Name: %s\nDescription: %s (GFOpenRTG) for the Freeciv AmigaOS 3.x build\nVersion: %s\nCflags: %s\nLibs: %s\n' \
         "$1" "$1" "$2" "$3" "$4" > "$SYS/lib/pkgconfig/$1.pc"
@@ -127,7 +139,8 @@ pc() {  # name version cflags libs
 pc sdl2 2.32.10 "-I$SYS/include/SDL2" "-L$SYS/lib -lSDL2"
 pc SDL2 2.32.10 "-I$SYS/include/SDL2" "-L$SYS/lib -lSDL2"
 pc SDL2_image 2.8.12 "-I$SYS/include/SDL2" "-L$SYS/lib -lSDL2_image"
+pc SDL2_mixer 2.8.2 "-I$SYS/include/SDL2" "-L$SYS/lib -lSDL2_mixer"
 pc SDL2_ttf 2.24.0 "-I$SYS/include/SDL2" "-L$SYS/lib -lSDL2_ttf"
 mkdir -p "$OUT/modules"
-cp "$SDLOUT/SDL2.module" "$SDLOUT/SDL2_image.module" "$OUT/modules/"
+cp "$SDLOUT/SDL2.module" "$SDLOUT/SDL2_image.module" "$SDLOUT/SDL2_mixer.module" "$OUT/modules/"
 cat "$OUT/SDL2-SHA256SUMS"
