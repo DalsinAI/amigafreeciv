@@ -1,0 +1,26 @@
+diff --git a/client/gui-sdl2/gui_main.c b/client/gui-sdl2/gui_main.c
+--- a/client/gui-sdl2/gui_main.c
++++ b/client/gui-sdl2/gui_main.c
+@@ -1011,6 +1011,22 @@
+ **************************************************************************/
+ int main(int argc, char **argv)
+ {
++#ifdef __amigaos__
++  /* Started from its Workbench icon (libnix gives argc 0 and the
++   * WBStartup message), or from a Shell with no options: the 2D trident
++   * tileset this build packs. */
++  static char *amiga_argv[] = { "Freeciv", "-t", "trident", NULL };
++
++  if (argc <= 1) {
++    argc = 3;
++    argv = amiga_argv;
++  }
++  /* SDL2_image decodes on the 68040 unless SDL_IMAGE_DECODER says
++   * otherwise (an environment variable outranks this): the host decode
++   * service took the lab's runtime down while the client loaded its
++   * thousand-odd flag and tile pictures (2 November 2026). */
++  SDL_SetHint("SDL_IMAGE_DECODER", "cpu");
++#endif /* __amigaos__ */
+   return client_main(argc, argv, FALSE);
+ }
+ 

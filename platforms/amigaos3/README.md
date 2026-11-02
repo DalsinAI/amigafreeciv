@@ -44,11 +44,16 @@ written by `tools/lha_archive.py`) holding the `Freeciv` drawer and
 `Freeciv.info` beside it, with the `.sha256`, an Aminet `.readme`,
 `package.json`, the drawer as it unpacks and `Freeciv.tar` with `UnTar` (for a
 lab: `UnTar Freeciv.tar` in the drawer that is to hold it). The drawer holds
-the client and the server, the data and docs from `FreecivData.tar` (already
-unpacked), `ReadMe` (from `package/ReadMe.in`), `COPYING`, and the
-`Freeciv.amigados` script as `Freeciv`, the game's icon: a project icon whose
-default tool is `C:IconX`, so a double-click runs the script (the stack, the
-image decoder and the tileset it sets).
+the SDL2 client as `Freeciv` (the game's icon, a tool icon with the
+1,000,000-byte stack the client needs) and the server, the data and docs from
+`FreecivData.tar` (already unpacked), `ReadMe` (from `package/ReadMe.in`) and
+`COPYING`. `patches/0016-sdl2-workbench-start-amigaos.patch` lets the client
+start from that icon: started from Workbench (libnix gives argc 0) or with no
+options it takes `-t trident`, the tileset packed, and on AmigaOS it sets the
+`SDL_IMAGE_DECODER` hint to `cpu` (an environment variable still outranks it),
+as `Freeciv.amigados` does from a Shell. OpenBench runs no script from an icon
+and the system has no IconX, so an icon on the script would not start the game
+(seen in `lab:showcase` on 2 November 2026).
 
 The drawer, the game and the documents have OS 3.5 GlowIcons (`icons/*.info`;
 the drawer's is `Freeciv-drawer.info` in the repository, as the game's icon is

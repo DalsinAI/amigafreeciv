@@ -26,10 +26,10 @@ drawer.
 Playing
 -------
 
-- Double-click Freeciv: IconX runs the Freeciv script, which gives the
-  client a large stack and starts it. "Start New Game" starts the server
-  beside it.
-- From a Shell: cd to the drawer, then Execute Freeciv.
+- Double-click Freeciv (the client; its icon gives it the large stack it
+  needs). "Start New Game" starts the server beside it.
+- From a Shell: cd to the drawer, then Stack 1000000 and Freeciv. With no
+  options it uses the trident tileset this archive holds.
 - Shift+Return ends a turn. Options, Save Game and Load Game are in the
   client's menu; Options, Quit closes the client and the server with it.
 

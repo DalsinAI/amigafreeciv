@@ -1,9 +1,9 @@
 {
-  "about": "The Workbench icons of the Freeciv drawer: python3 AMICRADLE/scripts/port_icons.py platforms/amigaos3/icons/icons.json --out platforms/amigaos3/icons (DalsinAI/amicradle). The art is Freeciv's own client icon (data/icons/128x128/freeciv-client.png, GPL-2.0-or-later). The game's icon is the Freeciv script, started by IconX: it sets the stack and the client's options.",
+  "about": "The Workbench icons of the Freeciv drawer: python3 AMICRADLE/scripts/port_icons.py platforms/amigaos3/icons/icons.json --out platforms/amigaos3/icons (DalsinAI/amicradle). The art is Freeciv's own client icon (data/icons/128x128/freeciv-client.png, GPL-2.0-or-later). The game's icon is the SDL2 client's own (packed as Freeciv), with the 1,000,000-byte stack it needs.",
   "drawer": {"name": "Freeciv", "file": "Freeciv-drawer.info"},
   "badge": "art/freeciv.png",
   "icons": [
-    {"file": "Freeciv.info", "kind": "tool", "type": "project", "defaultTool": "C:IconX", "stack": 1000000, "toolTypes": ["WINDOW=NIL:"]},
+    {"file": "Freeciv.info", "kind": "tool", "stack": 1000000},
     {"file": "ReadMe.info", "kind": "readme"},
     {"file": "COPYING.info", "kind": "readme"}
   ]
