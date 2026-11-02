@@ -35,6 +35,33 @@ The Cradle builds the same with `stove_build` (target `platforms/amigaos3`,
 script `build-amiga.sh`), which also packs the data drawer into
 `FreecivData.tar` and builds `UnTar` to unpack it on the Amiga.
 
+### Package and icons
+
+Target `platforms/amigaos3/package` (`package/build-amiga.sh`) builds the game
+as `platforms/amigaos3` does and packs the release archive with
+`tools/make_package.py`: `freeciv-VERSION-68040.lha` (LhA level-1, `-lh5-`,
+written by `tools/lha_archive.py`) holding the `Freeciv` drawer and
+`Freeciv.info` beside it, with the `.sha256`, an Aminet `.readme`,
+`package.json`, the drawer as it unpacks and `Freeciv.tar` with `UnTar` (for a
+lab: `UnTar Freeciv.tar` in the drawer that is to hold it). The drawer holds
+the client and the server, the data and docs from `FreecivData.tar` (already
+unpacked), `ReadMe` (from `package/ReadMe.in`), `COPYING`, and the
+`Freeciv.amigados` script as `Freeciv`, the game's icon: a project icon whose
+default tool is `C:IconX`, so a double-click runs the script (the stack, the
+image decoder and the tileset it sets).
+
+The drawer, the game and the documents have OS 3.5 GlowIcons (`icons/*.info`;
+the drawer's is `Freeciv-drawer.info` in the repository, as the game's icon is
+`Freeciv.info`): the classic four-colour picture for older Workbenches and two
+colour frames, drawn from Freeciv's own client icon (`icons/art/freeciv.png`,
+from `data/icons/128x128/freeciv-client.png`). They are committed, so the
+package needs nothing else; to draw them again, with a DalsinAI/amicradle
+checkout:
+
+```sh
+python3 ../amicradle/scripts/port_icons.py platforms/amigaos3/icons/icons.json --out platforms/amigaos3/icons
+```
+
 ## What is left out, and why
 
 | Upstream part | Here | Why |
