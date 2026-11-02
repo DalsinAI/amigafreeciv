@@ -51,7 +51,7 @@ SOURCE_DATE_EPOCH=$EPOCH meson setup "$OUT/build" "$TREE" --cross-file "$CROSS" 
     -Dc_args="-ffile-prefix-map=$TREE=." \
     -Dserver=$SERVER -Dclients="$CLIENTS" -Dfcmp=[] -Dtools=[] \
     -Dnls=false -Daudio=none -Dreadline=false -Dfcdb=[] -Daimodules=classic \
-    -Dmwand=false -Dsyslua=false -Djson-protocol=false \
+    -Dmwand=false -Dsyslua=false -Djson-protocol=false -Dsvgflags=false \
     > "$OUT/configure.log" 2>&1 || { tail -40 "$OUT/configure.log"; exit 4; }
 SOURCE_DATE_EPOCH=$EPOCH ninja -C "$OUT/build" -j"$JOBS" "${TARGETS[@]}" > "$OUT/build.log" 2>&1 \
     || { grep -E "error|Error|FAILED" "$OUT/build.log" | head -40; exit 5; }

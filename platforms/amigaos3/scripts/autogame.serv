@@ -1,7 +1,6 @@
 # Freeciv server, headless: three AI players on a small map for five turns,
 # saving at every turn and at the end. Run from the Freeciv drawer:
-#   freeciv-server -e -r autogame.serv
-rulesetdir classic
+#   freeciv-server -e --ruleset classic -r autogame.serv
 set size 1
 set aifill 3
 set minplayers 0

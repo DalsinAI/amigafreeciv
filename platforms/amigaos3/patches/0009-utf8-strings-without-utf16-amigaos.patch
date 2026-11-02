@@ -1,0 +1,40 @@
+diff --git a/utility/support.c b/utility/support.c
+index 5c7f66e..5ff2e8e 100644
+--- a/utility/support.c
++++ b/utility/support.c
+@@ -198,6 +198,11 @@ int fc_strcasecmp(const char *str0, const char *str1)
+     return 1;
+   }
+ 
++#ifdef __amigaos__
++  /* Straight from UTF-8: the UTF-16 round trip is too slow on a 68040 */
++  return fc_amiga_utf8_casecmp(str0, str1, -1);
++#endif
++
+   if (icu_buffer_uchars == 0) {
+     fc_strAPI_init();
+   }
+@@ -247,6 +252,11 @@ int fc_strncasecmp(const char *str0, const char *str1, size_t n)
+     return 1;
+   }
+ 
++#ifdef __amigaos__
++  /* Straight from UTF-8: the UTF-16 round trip is too slow on a 68040 */
++  return fc_amiga_utf8_casecmp(str0, str1, (long) n);
++#endif
++
+   if (icu_buffer_uchars == 0) {
+     fc_strAPI_init();
+   }
+@@ -750,6 +760,11 @@ size_t fc_strlcpy(char *dest, const char *src, size_t n)
+   fc_assert_ret_val(src != nullptr, -1);
+   fc_assert_ret_val(0 < n, -1);
+ 
++#ifdef __amigaos__
++  /* Whole UTF-8 characters, copied as they are: no UTF-16 round trip */
++  return fc_amiga_utf8_strlcpy(dest, src, n);
++#endif
++
+   if (icu_buffer_uchars == 0) {
+     fc_strAPI_init();
+   }

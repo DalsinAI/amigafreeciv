@@ -11,6 +11,7 @@
 #   - zlib 1.3.1, static;
 #   - compat/icu: the four ICU string calls Freeciv makes (not ICU);
 #   - compat/net: select() for libnix's sockets through WaitSelect();
+#   - compat/stack: a 1 MiB stack for the programs, however they are started;
 #   - a host `tolua` from Freeciv's own dependencies/ (the cross build runs it);
 #   - with FREECIV_SDK_SDL2=1: GFOpenRTG's SDL2.module, SDL2_image.module and
 #     link stubs, and SDL2_ttf (with FreeType) linked in.
@@ -116,6 +117,9 @@ mkdir -p "$OUT/fcamiga"
 $CC $CFLAGS_T -Wall -Wextra -I"$SYS/include" -c "$HERE/compat/net/fc_amiga_select.c" -o "$OUT/fcamiga/fc_amiga_select.o"
 $AR rcs "$SYS/lib/libfcamiga.a" "$OUT/fcamiga/fc_amiga_select.o"
 
+# A 1 MiB stack for every program (libnix's swapstack): compat/stack.
+$CC $CFLAGS_T -c "$HERE/compat/stack/fc_stack.c" -o "$SYS/lib/fc_stack.o"
+
 pc() {  # name version cflags libs
     printf 'Name: %s\nDescription: %s for the Freeciv AmigaOS 3.x build\nVersion: %s\nCflags: %s\nLibs: %s\n' \
         "$1" "$1" "$2" "$3" "$4" > "$SYS/lib/pkgconfig/$1.pc"
@@ -150,9 +154,9 @@ cross_inc_path = '$SYS/include'
 
 [built-in options]
 c_args = ['-noixemul', '-m68040', '-m68881', '-pthread', '-fno-delete-null-pointer-checks', '-I$SYS/include']
-c_link_args = ['-noixemul', '-m68040', '-m68881', '-pthread', '-L$SYS/lib']
+c_link_args = ['-noixemul', '-m68040', '-m68881', '-pthread', '-L$SYS/lib', '$SYS/lib/fc_stack.o']
 cpp_args = ['-noixemul', '-m68040', '-m68881', '-pthread', '-fno-delete-null-pointer-checks', '-I$SYS/include']
-cpp_link_args = ['-noixemul', '-m68040', '-m68881', '-pthread', '-L$SYS/lib']
+cpp_link_args = ['-noixemul', '-m68040', '-m68881', '-pthread', '-L$SYS/lib', '$SYS/lib/fc_stack.o']
 
 [host_machine]
 system = 'amigaos'

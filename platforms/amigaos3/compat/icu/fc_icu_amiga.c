@@ -238,3 +238,86 @@ int32_t u_strCaseCompare(const UChar *s1, int32_t length1,
     i++;
   }
 }
+
+int fc_amiga_utf8_casecmp(const char *s0, const char *s1, long n)
+{
+  const unsigned char *a = (const unsigned char *) s0;
+  const unsigned char *b = (const unsigned char *) s1;
+  long units = 0;
+
+  for (;;) {
+    uint32_t ca, cb;
+    int32_t la = 0, lb = 0;
+    UChar fa, fb;
+
+    if (n >= 0 && units >= n) {
+      return 0;
+    }
+    if (*a == '\0' || *b == '\0') {
+      return *a == '\0' && *b == '\0' ? 0 : (*a == '\0' ? -1 : 1);
+    }
+    /* ASCII on both sides: the common case, no decoding */
+    if (*a < 0x80 && *b < 0x80) {
+      unsigned char x = *a++, y = *b++;
+
+      if (x >= 'A' && x <= 'Z') x += 32;
+      if (y >= 'A' && y <= 'Z') y += 32;
+      if (x != y) {
+        return (int) x - (int) y;
+      }
+      units++;
+      continue;
+    }
+    ca = utf8_next(a, -1, &la);
+    cb = utf8_next(b, -1, &lb);
+    a += la;
+    b += lb;
+    if (ca >= 0x10000 || cb >= 0x10000) {
+      /* Beyond the BMP: compare the UTF-16 lead units, as ICU would */
+      UChar ua = ca >= 0x10000 ? (UChar) (0xD800 + ((ca - 0x10000) >> 10)) : fold((UChar) ca);
+      UChar ub = cb >= 0x10000 ? (UChar) (0xD800 + ((cb - 0x10000) >> 10)) : fold((UChar) cb);
+
+      if (ua != ub) {
+        return (int) ua - (int) ub;
+      }
+      if (ca != cb) {
+        return ca < cb ? -1 : 1;
+      }
+      units += 2;
+      continue;
+    }
+    fa = fold((UChar) ca);
+    fb = fold((UChar) cb);
+    if (fa != fb) {
+      return (int) fa - (int) fb;
+    }
+    units++;
+  }
+}
+
+size_t fc_amiga_utf8_strlcpy(char *dest, const char *src, size_t n)
+{
+  const unsigned char *s = (const unsigned char *) src;
+  size_t len = 0, cut = 0;
+
+  /* Copy whole characters while they fit in n - 1 bytes; return the length
+   * of the source, as strlcpy() does. */
+  while (s[len] != '\0') {
+    int32_t l;
+
+    (void) utf8_next(s + len, -1, &l);
+    if (cut == len && len + (size_t) l <= n - 1) {
+      cut = len + (size_t) l;
+    }
+    len += (size_t) l;
+  }
+  if (n > 0) {
+    size_t i;
+
+    for (i = 0; i < cut; i++) {
+      dest[i] = src[i];
+    }
+    dest[cut] = '\0';
+  }
+  return len;
+}

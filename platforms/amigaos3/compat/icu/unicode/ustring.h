@@ -12,6 +12,7 @@
 #ifndef FC_AMIGA_ICU_USTRING_H
 #define FC_AMIGA_ICU_USTRING_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -46,6 +47,14 @@ char *u_strToUTF8(char *dest, int32_t destCapacity, int32_t *pDestLength,
 int32_t u_strCaseCompare(const UChar *s1, int32_t length1,
                          const UChar *s2, int32_t length2,
                          uint32_t options, UErrorCode *pErrorCode);
+
+/* Freeciv's own string helpers without the UTF-16 round trip (on a 68040
+ * that round trip made loading the nations take minutes): case-insensitive
+ * comparison of two UTF-8 strings, of at most n UTF-16 units when n >= 0,
+ * and a copy that never cuts a character. Same results as utility/support.c
+ * gets through the calls above. */
+int fc_amiga_utf8_casecmp(const char *s0, const char *s1, long n);
+size_t fc_amiga_utf8_strlcpy(char *dest, const char *src, size_t n);
 
 #ifdef __cplusplus
 }

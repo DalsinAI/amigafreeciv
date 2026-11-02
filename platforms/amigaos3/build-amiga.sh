@@ -48,6 +48,7 @@ export PATH="$WORK/venv/bin:$PATH"
 command -v pkg-config >/dev/null || ln -s "$(command -v pkgconf)" "$WORK/venv/bin/pkg-config"
 echo "tools: meson $(meson --version), ninja $(ninja --version), pkg-config $(pkg-config --version)"
 
+[[ " $PARTS " == *" client "* ]] && export FREECIV_SDK_SDL2=1
 [[ -f "$WORK/sdk/sdk.env" ]] || nice -n 19 bash "$HERE/build_sdk.sh" "$WORK/sdk"
 echo "sdk ready after $(( $(date +%s) - START )) s"
 rm -rf "$WORK/game"
@@ -66,8 +67,28 @@ PKG=$WORK/game/freeciv
 for f in "$PKG"/freeciv-* "$PKG"/*.amigados "$PKG"/*.serv; do
     [[ -f "$f" ]] && cp "$f" "$OUT/"
 done
-cp "$WORK/game/receipt.json" "$WORK/game/build.log" "$WORK/game/configure.log" "$OUT/"
-(cd "$OUT" && sha256sum freeciv-* UnTar FreecivData.tar) > "$OUT/SHA256SUMS"
+cp "$WORK/game/build.log" "$WORK/game/configure.log" "$OUT/"
+# The receipt, with the Cradle stove it ran beside. The build uses its own
+# pinned open3 compiler (sdk_pins), whatever the stove is.
+python3 - "$WORK/game/receipt.json" "$OUT/receipt.json" "${STOVE:-}" <<'PY'
+import json, sys
+from pathlib import Path
+r = json.loads(Path(sys.argv[1]).read_text())
+stove = Path(sys.argv[3]) if sys.argv[3] else None
+prov = stove / "provenance.json" if stove else None
+info = {"path": str(stove) if stove else None}
+if prov and prov.is_file():
+    p = json.loads(prov.read_text())
+    info.update(release=p.get("release"), archive_sha256=p.get("archive_sha256"))
+r["cradle_stove"] = info
+r["compiler_used"] = "GFOpenAmigaGCC 16.2.0-open3 release (sdk_pins.GCC_BIN_SHA), downloaded and checked by build_sdk.sh"
+Path(sys.argv[2]).write_text(json.dumps(r, indent=2) + "\n")
+PY
+# GFOpenRTG's SDL2 modules the client was linked against, for LIBS:GFOpenGPU/
+if [[ -d "$WORK/sdk/modules" ]]; then
+    cp "$WORK/sdk/modules/"*.module "$WORK/sdk/SDL2-SHA256SUMS" "$OUT/"
+fi
+(cd "$OUT" && sha256sum freeciv-* UnTar FreecivData.tar $(ls *.module 2>/dev/null)) > "$OUT/SHA256SUMS"
 rm -rf "$WORK"
 echo "total $(( $(date +%s) - START )) s"
 ls -la "$OUT"
