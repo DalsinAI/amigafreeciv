@@ -1,0 +1,19 @@
+diff --git a/utility/netintf.c b/utility/netintf.c
+index d7567cd..b61d7b2 100644
+--- a/utility/netintf.c
++++ b/utility/netintf.c
+@@ -119,6 +119,14 @@ int fc_connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
+   return result;
+ }
+ 
++#ifdef __amigaos__
++/* libnix's select() does not see its sockets' data: the port's own
++ * WaitSelect() bridge (platforms/amigaos3/compat/net) */
++int fc_amiga_select(int n, fd_set *readfds, fd_set *writefds,
++                    fd_set *exceptfds, struct timeval *timeout);
++#define select fc_amiga_select
++#endif /* __amigaos__ */
++
+ /*********************************************************************//**
+   Wait for a number of sockets to change status
+ *************************************************************************/

@@ -1,0 +1,16 @@
+diff --git a/utility/inputfile.c b/utility/inputfile.c
+index c56abcf..9f036ed 100644
+--- a/utility/inputfile.c
++++ b/utility/inputfile.c
+@@ -452,6 +452,11 @@ static bool check_include(struct inputfile *inf)
+   }
+ 
+   new_inf = inf_from_file(full_name, inf->datafn);
++  if (new_inf == nullptr) {
++    /* Found but cannot be opened (no free file handle, say) */
++    log_error("Could not open included file \"%s\"", full_name);
++    return FALSE;
++  }
+ 
+   /* Swap things around so that memory pointed to by inf (user pointer,
+      and pointer in calling functions) contains the new inputfile,

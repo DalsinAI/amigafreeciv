@@ -1,0 +1,107 @@
+diff --git a/meson.build b/meson.build
+index d90ea80..efbabbc 100644
+--- a/meson.build
++++ b/meson.build
+@@ -189,6 +189,9 @@ if host_system == 'windows'
+ else
+   if host_system == 'haiku'
+     def_storage_dir = '~/config/settings/freeciv'
++  elif host_system == 'amigaos'
++    # Settings and saves stay with the program, as other Amiga games keep them
++    def_storage_dir = 'PROGDIR:User'
+   else
+     def_storage_dir = '~/.freeciv'
+   endif
+@@ -213,6 +216,16 @@ if host_system == 'windows'
+     '".;@FREECIV_STORAGE_DIR@/saves"')
+   priv_conf_data.set('DEFAULT_SCENARIO_PATH',
+     '".;data/scenarios;@FREECIV_STORAGE_DIR@/@DATASUBDIR@/scenarios;@FREECIV_STORAGE_DIR@/scenarios;@DATADIR@/freeciv/scenarios"')
++elif host_system == 'amigaos'
++  # AmigaDOS has no "." directory: the data is found beside the program.
++  default_localeprefix = 'PROGDIR:'
++
++  priv_conf_data.set('DEFAULT_DATA_PATH',
++    '"PROGDIR:data;@FREECIV_STORAGE_DIR@/@DATASUBDIR@"')
++  priv_conf_data.set('DEFAULT_SAVE_PATH',
++    '"@FREECIV_STORAGE_DIR@/saves"')
++  priv_conf_data.set('DEFAULT_SCENARIO_PATH',
++    '"PROGDIR:data/scenarios;@FREECIV_STORAGE_DIR@/scenarios"')
+ else
+   default_localeprefix = get_option('prefix')
+ 
+@@ -235,7 +248,12 @@ endif
+ if meson.is_cross_build()
+   cross_inc_str = meson.get_external_property('cross_inc_path', '')
+   cross_inc_path = [cross_inc_str]
+-  cross_lib_path = [meson.get_external_property('cross_lib_path', '')]
++  cross_lib_str = meson.get_external_property('cross_lib_path', '')
++  if cross_lib_str == ''
++    cross_lib_path = []
++  else
++    cross_lib_path = [cross_lib_str]
++  endif
+   crosser = meson.get_external_property('crosser', false)
+ else
+   cross_inc_str = ''
+@@ -378,6 +396,14 @@ else
+   if host_system == 'haiku'
+     net_dep = c_compiler.find_library('network')
+     priv_conf_data.set('ALWAYS_ROOT', 1)
++  elif host_system == 'amigaos'
++    # libnix's socket library over bsdsocket.library, with the port's
++    # select() bridge (libfcamiga). The console is not a socket, so the
++    # server reads it apart from select().
++    net_dep = [c_compiler.find_library('fcamiga'),
++               c_compiler.find_library('socket')]
++    pub_conf_data.set('FREECIV_SOCKET_ZERO_NOT_STDIN', 1)
++    priv_conf_data.set('ALWAYS_ROOT', 1)
+   else
+     net_dep = []
+   endif
+@@ -520,6 +546,15 @@ foreach func : priv_functions
+   endif
+ endforeach
+ 
++if host_system == 'amigaos'
++  # libnix links these, but no header the build sees declares them, or
++  # they cannot work here: fork, and fcntl() on a socket (fc_nonblock()
++  # then uses ioctl(FIONBIO), which libnix passes to bsdsocket.library)
++  foreach func : ['nanosleep', 'fork', 'vfork', 'fcntl']
++    priv_conf_data.set('HAVE_' + func.underscorify().to_upper(), false)
++  endforeach
++endif
++
+ priv_liblua_functions = [
+   'localtime_r'
+   ]
+@@ -564,7 +599,10 @@ else
+   bcrypt_lib_dep = []
+ endif
+ 
+-if c_compiler.has_function('getaddrinfo',
++# AmigaOS socket headers are IPv4 only, although libnix links getaddrinfo()
++if host_system == 'amigaos'
++  warning('IPv6 support not enabled')
++elif c_compiler.has_function('getaddrinfo',
+                            dependencies: net_dep,
+                            args: ['-O'])
+   priv_conf_data.set('HAVE_GETADDRINFO', 1)
+@@ -1010,12 +1048,17 @@ endif
+ if host_system == 'emscripten'
+   curl_dep = []
+   m_dep = []
++elif host_system == 'amigaos'
++  # No libcurl: netfile.c answers that downloads and metaserver posts
++  # are unavailable.
++  curl_dep = []
++  m_dep = c_compiler.find_library('m', dirs: cross_lib_path)
+ else
+   curl_dep = c_compiler.find_library('curl', dirs: cross_lib_path)
+   m_dep = c_compiler.find_library('m', dirs: cross_lib_path)
+ endif
+ 
+-if host_system != 'emscripten'
++if host_system != 'emscripten' and host_system != 'amigaos'
+   if c_compiler.compiles(net_incl + '''
+ #include <stddef.h>
+ #include <curl/curl.h>

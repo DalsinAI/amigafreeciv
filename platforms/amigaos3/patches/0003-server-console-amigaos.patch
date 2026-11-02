@@ -1,0 +1,54 @@
+diff --git a/utility/support.c b/utility/support.c
+index 779ed93..5c7f66e 100644
+--- a/utility/support.c
++++ b/utility/support.c
+@@ -988,6 +988,10 @@ static char console_buf[CONSOLE_BUF_SIZE + 1];
+ 
+ /***************************************************************************/
+ 
++#ifdef __amigaos__
++#include <proto/dos.h>
++#endif
++
+ #ifdef FREECIV_MSWINDOWS
+ static HANDLE console_thread = INVALID_HANDLE_VALUE;
+ 
+@@ -1021,6 +1025,8 @@ void fc_init_console(void)
+   console_buf[0] = '\0';
+   console_thread = (HANDLE) CreateThread(nullptr, 0, windows_console_thread,
+                                          nullptr, 0, nullptr);
++#elif defined(__amigaos__)
++  /* fc_read_console() polls the console with WaitForChar() */
+ #else  /* FREECIV_MSWINDOWS */
+   static bool initialized = FALSE;
+ 
+@@ -1050,6 +1056,29 @@ char *fc_read_console(void)
+     return console_buf;
+   }
+ 
++  return nullptr;
++#elif defined(__amigaos__)
++  /* AmigaOS: take only what the console already holds, so the server's
++     loop never waits on it. No console (Run >NIL: <NIL:): no input. */
++  static char *bufptr = console_buf;
++  BPTR in = Input();
++  char c;
++
++  if (in == 0 || !IsInteractive(in)) {
++    return nullptr;
++  }
++  while (WaitForChar(in, 0) && Read(in, &c, 1) == 1) {
++    if (c == '\n' || c == '\r') {
++      *bufptr = '\0';
++      bufptr = console_buf;
++
++      return console_buf;
++    }
++    if ((bufptr - console_buf) < CONSOLE_BUF_SIZE) {
++      *bufptr++ = c;
++    }
++  }
++
+   return nullptr;
+ #else  /* FREECIV_MSWINDOWS */
+   if (!feof(stdin)) {    /* input from server operator */
