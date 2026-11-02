@@ -14,13 +14,46 @@ plan are in [FEASIBILITY.md](FEASIBILITY.md).
 
 This is TESTING work, not a RELEASE ([RELEASE_POLICY.md](RELEASE_POLICY.md)).
 
-## Status
+## Building
 
-Plan only: [FEASIBILITY.md](FEASIBILITY.md) sets out what the GF SDK
-already has, what the port brings (zlib, a small ICU subset, the OpenSocket
-headers) and what it leaves out (libcurl, SQLite, NLS, sound), and the
-steps: server headless, SDL2 client, client and server together on one
-Amiga, a few turns with save and load, then measurement.
+Linux host with `bash`, `curl`, `git`, `python3`, `meson` (0.63 or later),
+`ninja`, `pkg-config` and a host `gcc` (for the `tolua` generator):
+
+```sh
+bash platforms/amigaos3/build_sdk.sh /tmp/fc-sdk              # once
+bash platforms/amigaos3/build-amigaos3.sh /tmp/fc-sdk /tmp/fc-out server
+```
+
+`build_sdk.sh` fetches only pinned inputs (the open3 compiler release, the
+OpenSocket headers, zlib 1.3.1) and checks each against its SHA-256 or
+commit. `build-amigaos3.sh` exports the tree at `HEAD` (or `REF=`), applies
+`patches/` with no fuzz, configures with Meson for the cross target and
+builds offline. `/tmp/fc-out/freeciv` is the drawer to copy to the Amiga;
+`receipt.json` records the commit, patch and executable hashes.
+
+The Cradle builds the same with `stove_build` (target `platforms/amigaos3`,
+script `build-amiga.sh`), which also packs the data drawer into
+`FreecivData.tar` and builds `UnTar` to unpack it on the Amiga.
+
+## What is left out, and why
+
+| Upstream part | Here | Why |
+| --- | --- | --- |
+| ICU | `compat/icu`: the four calls Freeciv makes | full ICU and its data are tens of MiB |
+| libcurl | none: metaserver and downloads answer "no HTTP support" | single player needs neither |
+| SQLite (fcdb), modpack installer, ruledit | not built | not needed to play |
+| IPv6 | off | the Amiga socket headers are IPv4 |
+| NLS (translations), readline, sound | off | first milestone; English only, muted |
+| AI modules | `classic` only | `tex` adds threads and memory |
+
+## Running
+
+In the Freeciv drawer, `UnTar FreecivData.tar` once (it makes `data/` and
+`docs/`). Give programs a large stack (`Stack 1000000`). Settings and saves
+go to `PROGDIR:User` (beside the programs).
+
+- Server alone, headless: `Execute ServerTest.amigados` plays five AI turns
+  on a small classic map and saves each turn in `User/saves`.
 
 ## Observed
 

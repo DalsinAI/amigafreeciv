@@ -1,0 +1,10 @@
+; Freeciv: the server alone, headless. Three AI players play five turns on
+; a small classic map, saving each turn; -e ends the server with the game.
+; Times and the log go to RAM:FreecivServer.log. Run it in the Freeciv drawer.
+FailAt 21
+Stack 1000000
+Date
+freeciv-server -e -r autogame.serv -p 5599 -b 127.0.0.1 -l RAM:FreecivServer.log -d 2 --nometa
+Echo "freeciv-server returned"
+Date
+List User/saves

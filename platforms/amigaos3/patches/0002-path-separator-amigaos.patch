@@ -1,0 +1,14 @@
+diff --git a/utility/shared.h b/utility/shared.h
+index 42a7777..9420e47 100644
+--- a/utility/shared.h
++++ b/utility/shared.h
+@@ -111,6 +111,9 @@ enum fc_tristate fc_tristate_or(enum fc_tristate one, enum fc_tristate two);
+ #if defined(FREECIV_MSWINDOWS) || defined(_WIN32) || defined(__WIN32__) || defined(__EMX__) || defined(__DJGPP__)
+   /* Windows, OS/2, DOS */
+ # define PATH_SEPARATOR ";"
++#elif defined(__amigaos__)
++  /* AmigaOS: ':' ends a volume or assign name ("PROGDIR:data") */
++# define PATH_SEPARATOR ";"
+ #else
+   /* Unix */
+ # define PATH_SEPARATOR ":"

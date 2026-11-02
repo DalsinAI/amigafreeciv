@@ -1,0 +1,19 @@
+diff --git a/server/commands.h b/server/commands.h
+index 4ecc577..f629c02 100644
+--- a/server/commands.h
++++ b/server/commands.h
+@@ -17,6 +17,14 @@
+ /* common */
+ #include "connection.h"         /* enum cmdlevel */
+ 
++#ifdef __amigaos__
++/* exec/io.h, which the socket headers bring in, defines CMD_RESET. Include
++ * it first, so its guard keeps it from coming back, and take the name back
++ * for enum command_id. */
++#include <exec/io.h>
++#undef CMD_RESET
++#endif /* __amigaos__ */
++
+ enum cmd_echo {
+   CMD_ECHO_NONE = 0,
+   CMD_ECHO_ADMINS,      /* i.e. all with 'admin' access and above. */
