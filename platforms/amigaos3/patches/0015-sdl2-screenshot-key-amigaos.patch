@@ -7,8 +7,8 @@
 +#ifdef __amigaos__
 +/**********************************************************************//**
 +  AmigaOS 3.x: F10 writes the whole window to PROGDIR:User/shot-NNN.png
-+  (SDL2_image), and the same picture again in strips of 120 lines
-+  (shot-NNN-1.png ...), each small enough to copy out of a test lab one
++  (SDL2_image), and the same picture again as JPEG strips of 60 lines
++  (shot-NNN-1.jpg ...), each small enough to copy out of a test lab one
 +  file at a time. Upstream's own screenshot key (Print) is compiled out,
 +  and an Amiga has no such key.
 +**************************************************************************/
@@ -27,8 +27,8 @@
 +  } else {
 +    log_normal("Screenshot %s", name);
 +  }
-+  for (y = 0, part = 1; y < main_surface->h; y += 120, part++) {
-+    int h = main_surface->h - y < 120 ? main_surface->h - y : 120;
++  for (y = 0, part = 1; y < main_surface->h; y += 60, part++) {
++    int h = main_surface->h - y < 60 ? main_surface->h - y : 60;
 +    SDL_Surface *strip =
 +      SDL_CreateRGBSurfaceFrom((Uint8 *)main_surface->pixels
 +                               + y * main_surface->pitch,
@@ -39,9 +39,9 @@
 +                               main_surface->format->Amask);
 +
 +    if (strip != NULL) {
-+      SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d-%d.png",
++      SDL_snprintf(name, sizeof(name), "PROGDIR:User/shot-%03d-%d.jpg",
 +                   shot_nr, part);
-+      IMG_SavePNG(strip, name);
++      IMG_SaveJPG(strip, name, 80);
 +      SDL_FreeSurface(strip);
 +    }
 +  }
