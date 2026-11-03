@@ -37,11 +37,11 @@ for p in "$HERE"/patches/*.patch; do
 done
 
 # 2. Configure: only what a single-player game on one Amiga needs.
-CLIENTS="[]"; SERVER=disabled; TARGETS=()
+CLIENTS="[]"; SERVER=disabled; TARGETS=(); AUDIO=none
 for part in $PARTS; do
     case $part in
         server) SERVER=enabled; TARGETS+=(freeciv-server) ;;
-        client) CLIENTS="['sdl2']"; TARGETS+=(freeciv-sdl2) ;;
+        client) CLIENTS="['sdl2']"; TARGETS+=(freeciv-sdl2); AUDIO=sdl2 ;;
         *) echo "unknown part: $part" >&2; exit 2 ;;
     esac
 done
@@ -61,7 +61,7 @@ SOURCE_DATE_EPOCH=$EPOCH meson setup "$OUT/build" "$TREE" --cross-file "$OUT/cro
     --buildtype=release -Dprefix=/freeciv -Ddefault_library=static \
     -Db_staticpic=false -Db_pie=false \
     -Dserver=$SERVER -Dclients="$CLIENTS" -Dfcmp=[] -Dtools=[] \
-    -Dnls=false -Daudio=none -Dreadline=false -Dfcdb=[] -Daimodules=classic \
+    -Dnls=false -Daudio=$AUDIO -Dreadline=false -Dfcdb=[] -Daimodules=classic \
     -Dmwand=false -Dsyslua=false -Djson-protocol=false -Dsvgflags=false \
     > "$OUT/configure.log" 2>&1 || { tail -40 "$OUT/configure.log"; exit 4; }
 SOURCE_DATE_EPOCH=$EPOCH ninja -C "$OUT/build" -j"$JOBS" "${TARGETS[@]}" > "$OUT/build.log" 2>&1 \
@@ -83,7 +83,8 @@ mkdir -p "$OUT/tests"
     "$HERE/tests/task_peek.c" -o "$OUT/tests/TaskPeek"
 
 # 3. The package. Data: the classic and civ2civ3 rulesets with what they
-#    include, and for the client its theme, one tileset and fonts.
+#    include, and for the client its theme, one tileset, fonts, and the
+#    stdsounds and stdmusic sets.
 PKG=$OUT/freeciv
 mkdir -p "$PKG/data" "$PKG/User/saves" "$PKG/docs"
 for t in "${TARGETS[@]}"; do

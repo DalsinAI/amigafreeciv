@@ -13,8 +13,8 @@
 #   - compat/net: select() for libnix's sockets through WaitSelect();
 #   - compat/stack: a 1 MiB stack for the programs, however they are started;
 #   - a host `tolua` from Freeciv's own dependencies/ (the cross build runs it);
-#   - with FREECIV_SDK_SDL2=1: GFOpenRTG's SDL2.module, SDL2_image.module and
-#     link stubs, and SDL2_ttf (with FreeType) linked in.
+#   - with FREECIV_SDK_SDL2=1: GFOpenRTG's SDL2.module, SDL2_image.module,
+#     SDL2_mixer.module and link stubs, and SDL2_ttf (with FreeType) linked in.
 # Every download is checked against a pinned commit or SHA-256. The output is
 # a local build workspace, not something to publish.
 #
@@ -35,7 +35,7 @@ GCC_SRC_SHA=d8b7cf2101cf70df1cf719d199230260790420f43ec6e899f3d061a85ff3bcda
 OPENSDK_NET_COMMIT=dca5000e5f7fffdbdba8725f6923052379b865ff
 ZLIB=zlib-1.3.1
 ZLIB_SHA=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
-OPENRTG_COMMIT=bbf126e28e3035db7bebd1b71c636f7b8fcdb162
+OPENRTG_COMMIT=210df77692fa620cba1bdad96dfdac1d333b3123
 AROS_REPOSITORY=https://github.com/aros-development-team/AROS.git
 AROS_REF=c8860e674d7c5fbab304e2bf201f7a9c81c98629
 VASM_COMMIT=a13e7e728a3dd5a9ba468bf479119e0bc23e70fd

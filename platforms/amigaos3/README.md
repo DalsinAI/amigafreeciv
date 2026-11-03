@@ -75,7 +75,7 @@ python3 ../amicradle/scripts/port_icons.py platforms/amigaos3/icons/icons.json -
 | libcurl | none: metaserver and downloads answer "no HTTP support" | single player needs neither |
 | SQLite (fcdb), modpack installer, ruledit | not built | not needed to play |
 | IPv6 | off | the Amiga socket headers are IPv4 |
-| NLS (translations), readline, sound | off | first milestone; English only, muted |
+| NLS (translations), readline | off | English only |
 | AI modules | `classic` only | `tex` adds threads and memory |
 
 ## Running
@@ -86,8 +86,18 @@ go to `PROGDIR:User` (beside the programs).
 
 - Server alone, headless: `Execute ServerTest.amigados` plays five AI turns
   on a small classic map and saves each turn in `User/saves`.
-- The game: `Execute Freeciv.amigados` (the SDL2 client; its modules go in
-  `LIBS:GFOpenGPU/`). "Start New Game" starts `freeciv-server` beside it.
+- The game: `Execute Freeciv.amigados` (the SDL2 client; `SDL2.module`,
+  `SDL2_image.module` and `SDL2_mixer.module` go in `LIBS:GFOpenGPU/`).
+  "Start New Game" starts `freeciv-server` beside it.
+- Sound: the client plays Freeciv's own `stdsounds` effects and `stdmusic`
+  menu music (Ogg Vorbis, in the data drawer) through SDL2_mixer and AHI.
+  `-P none` in `Freeciv.amigados` turns it off. On AmigaOS the client
+  mixes 4096-sample buffers (patches/0014).
+- F10 saves the client's window as `User/shot-NNN.png` (patches/0015).
+- For measuring: `SetEnv FREECIV_AUDIOSTATS <file>` before starting the
+  client writes the mixer's buffer count and gaps every five seconds, and
+  each sound's load time, to that file; `FREECIV_AUDIOBUFFER` sets another
+  buffer size.
 
 ## Observed
 
@@ -224,5 +234,144 @@ nation. Longer games will be slower.
 - Map-scrolling speed was not measured.
 - The host decode service fault above is still open, and the launcher
   still decodes on the 68040.
+
+This is TESTING, not RELEASE.
+
+### 2 November 2026: sound, screenshots and a long game
+
+Cradle builds of `team4/freeciv-sound-20261102`, last at `37712e7` (job
+`j20261102T212531-6d1fe8`, exit 0): `freeciv-sdl2`
+`7a5347bff4ced653eaca60068dda7496be53df189869ab9d486badddd0605f81`,
+`freeciv-server` unchanged at `730aead6…`, `SDL2_mixer.module`
+`07410c8b0039e2a9867f744d339aca8164d646909ee2acdbe4baffdcd515314d`.
+GFOpenRTG is now main at `210df77` (after #171 and #173). Same lab,
+muted, so nothing was heard: the sound was checked by measuring it.
+
+**Sound.**
+- SDL opened AHI (`Audio: ahi, 44100 Hz, 2 channel(s), format 0x9010`,
+  16-bit stereo) and loaded the menu music and every effect it was asked
+  for with no error. The music decoders SDL2_mixer opened were WAVE and
+  Ogg (its `media.decode` interface and stb_vorbis); the launcher keeps
+  decoding on the 68040 (`SDL_MIXER_DECODER=cpu`). A menu run with the
+  host decoder (`auto`) also kept time, with no fault.
+- Buffer size. Upstream mixes 1024 samples (23 ms). In the lab's main
+  menu that gave 213 to 217 buffers per five seconds against 215 or 216
+  expected, with gaps of up to 72 ms: late buffers. With 4096 samples
+  (93 ms, upstream's Windows size) every window had its 53 or 54, worst
+  gap 96 to 137 ms. patches/0014 makes 4096 the AmigaOS default.
+- The long game below, with sound on, 46 minutes (552 five-second
+  windows): 29,790 buffers mixed. 537 windows had all their buffers.
+  15 fell 1 to 4 short, their worst gaps 0.18 to 0.51 s, all while
+  the client was busy with turns arriving every 2 to 20 seconds (game
+  start, the switch to AI play, turns 67 to 71 and 148 to 155). So a
+  short break in the sound is possible during a heavy turn change.
+- The log for that run is
+  [docs/observed/audio-game-20261102.txt](docs/observed/audio-game-20261102.txt).
+- Loading. Effects are decoded whole when first played, on the client's
+  own task: 10 to 260 ms for most, 370 to 490 ms for `fanfare.ogg`
+  (stereo, 44.1 kHz, 296 KB), and once 2.5 s for `complete.ogg` while a
+  game was loading. The menu music streams and opens in 12 to 330 ms
+  (once 4 s, back at the menu while the server was busy).
+- No slowdown in play. Turns 100 to 111 of the same save, run by the
+  server with `timeout -1`: 167 s with no client, and 167 s with the
+  client connected, watching, with sound on.
+- Quit with sound on, from the main menu: five times, each time the
+  process ended at once and the statistics file ends `audio: closed`
+  (no SDL audio task left, by TaskPeek).
+- Quit from inside a game while the server was running AI turns as fast
+  as it could (`timeout -1`) took effect only after about four minutes,
+  once the client had worked through the turns queued for it. The
+  client then ended cleanly, audio closed. Once the client stayed busy
+  with that queue and the lab was reset. At normal play (`timeout 0`)
+  Quit was immediate.
+
+**Screenshots** (the client's 640 x 480 window, in
+[docs/observed](docs/observed)):
+
+| Picture | What |
+| --- | --- |
+| [01-main-menu.png](docs/observed/01-main-menu.png) | Intro picture and main menu, music playing |
+| [02-turn1-first-city.png](docs/observed/02-turn1-first-city.png) | Turn 1, 4000 BCE: the Incas' first city, Kitu |
+| [03-city-dialog-turn1.png](docs/observed/03-city-dialog-turn1.png) | Kitu's city dialog on turn 1 |
+| [04-game-turn103.png](docs/observed/04-game-turn103.png) | Turn 103, 40 CE: the map with the Inca cities and their neighbours |
+| [05-city-dialog-turn110.png](docs/observed/05-city-dialog-turn110.png) | Pachakamaq's city dialog on turn 110 |
+| [06-load-game.png](docs/observed/06-load-game.png) | Load Game: the list of saves the server offers |
+| [07-diplomacy.png](docs/observed/07-diplomacy.png) | Diplomacy: the Arab ambassador (Foreign Minister dialog) |
+| [08-options-save-game.png](docs/observed/08-options-save-game.png) | Options with Save Game; it wrote `freeciv-T0100-Y-0025-manual.sav.gz` (84 KB) |
+
+Pictures 01 to 05 were taken from the lab's screen; 06 to 08 with the
+client's own F10 (patches/0015). "Call Diplomatic Meeting" with the
+Arabs on turn 100 opened no treaty window (the AI did not take the
+meeting); the treaty window itself is not pictured.
+
+**A long game.** civ2civ3, 44 x 44, the Incas and six easy AIs plus
+animals. Turns 1 to 3 by hand, then the Incas went to the AI
+(`/aitoggle`) and `timeout -1` let the server start each turn as soon as
+the AIs had moved, with the client (sound on) watching up to turn 164.
+Each figure is the time between autosaves (Amiga clock, to the second),
+from [docs/observed/turns-20261102.txt](docs/observed/turns-20261102.txt):
+
+| Turns | Year | Seconds a turn, mean (range) | Cities (all nations) | Units |
+| --- | --- | --- | --- | --- |
+| 4 to 10 | 3850 to 3550 BCE | 2.7 (1 to 5) | | |
+| 10 to 20 | to 3050 BCE | 3.0 (1 to 5) | | |
+| 20 to 30 | to 2550 BCE | 3.1 (2 to 4) | | |
+| 30 to 40 | to 2050 BCE | 4.5 (3 to 7) | | |
+| 40 to 50 | to 1550 BCE | 5.7 (3 to 9) | 30 at turn 51 | 43 |
+| 50 to 60 | to 1050 BCE | 9.3 (6 to 14) | | |
+| 60 to 70 | to 775 BCE | 14.4 (9 to 22) | | |
+| 70 to 80 | to 525 BCE | 22.7 (14 to 30) | | |
+| 80 to 90 | to 275 BCE | 16.2 (9 to 26) | | |
+| 90 to 100 | to 25 BCE | 16.9 (10 to 21) | 68 at turn 101 | 210 |
+| 100 to 110 | to 180 CE | 17.9 (13 to 23) | | |
+| 110 to 120 | to 380 CE | 14.7 (9 to 27) | | |
+| 120 to 130 | to 580 CE | 17.7 (12 to 28) | | |
+| 130 to 140 | to 780 CE | 12.8 (9 to 22) | | |
+| 140 to 150 | to 980 CE | 17.3 (9 to 36) | 71 at turn 151 | 282 |
+| 150 to 160 | to 1090 CE | 18.5 (11 to 33) | | |
+| 160 to 170 | to 1190 CE | 17.7 (11 to 33) | | |
+| 170 to 180 | to 1290 CE | 16.5 (12 to 24) | | |
+| 180 to 195 | to 1440 CE | 16.6 (9 to 37) | 71 at turn 196 | 293 |
+
+- These are AI turns with nobody waiting on a human. In a game played by
+  hand, each turn change costs the same plus the player's own moves.
+- The cost grows with the cities until the land is nearly full (68
+  cities by turn 101) and then stays at 13 to 19 seconds a turn on the
+  lab's emulated 68040. The peak at turns 70 to 80 (23 s) is not
+  explained.
+- Turn 196 was 1450 CE, the land was full, and no nation had been
+  destroyed.
+- City and unit counts are from uncompressed saves of the same game,
+  made by the server alone and searched for `ncities` and `nunits`.
+  Their sizes were 478 KB at turn 51, 563 KB at turn 101 and 636 KB at
+  turn 196; the game's own compressed autosaves were 41 KB at turn 1,
+  84 KB at turn 101 and 96 KB at turn 195.
+
+**Memory** (Fast RAM free, `Avail`, about 660 MB in the lab):
+- Before the client: 527 MB.
+- Client and server, the game at turn 2: 397 MB. At turn 81: 386 MB.
+  At turn 160: 374 MB. So the two together use about 130 MB at the
+  start and 155 MB by turn 160.
+- The server alone at turn 187: 457 MB free (about 70 MB).
+- After both had ended, 525 MB were free again.
+- Loading the turn-100 save: client and server took 151 MB; the server
+  alone, once the client had quit, took about 63 MB.
+- A real 68040 with 64 MB or less cannot hold this. FEASIBILITY.md has
+  the remedy (fewer player slots), still not measured.
+
+**Still not shown or not right:**
+- Nobody has listened: the lab is muted. A person on an instance with
+  sound should confirm the music and effects sound right.
+- Only the menu music exists in stdmusic. Upstream's music for each
+  style and era is not in its source tree, and the game plays no music
+  in play.
+- An effect is decoded on the client's task the first time it plays; the
+  larger ones stop the client for up to half a second (2.5 s once).
+- A heavy turn change can still drop a few hundred milliseconds of
+  sound.
+- Quit during fast AI turns waits for the client to catch up.
+- The treaty window of the diplomacy dialog was not pictured.
+- The host decode service fault is still open (pictures and sound
+  decode on the 68040).
 
 This is TESTING, not RELEASE.
