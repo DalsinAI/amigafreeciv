@@ -1,0 +1,50 @@
+Freeciv @VERSION@ for AmigaOS 3.x (AmiCradle)
+=====================================================
+
+Freeciv is the open-source empire-building strategy game in the manner of
+Civilization: found cities, research, trade, make war and peace, from
+4000 BC to the space age. This is its AmigaOS 3.x build for a 68040 or
+68060 with an FPU: the SDL 2 client (through GFOpenGPU) and the server,
+English only. Status: TESTING, not a release.
+
+Requirements
+------------
+
+- AmigaOS 3.2, a 68040 or 68060 with an FPU, AmiCradle or an RTG board,
+  and plenty of fast RAM (the client alone used about 45 MB).
+- GFOpenGPU's SDL2.module and SDL2_image.module in LIBS:GFOpenGPU/.
+- bsdsocket.library (GFOpenSocket): the client talks to its own server
+  on this machine.
+
+Installing
+----------
+
+Unpack the archive where you keep games (lha x freeciv-...lha Games:) and
+open the Freeciv drawer. Settings and saves go to the drawer's User
+drawer.
+
+Playing
+-------
+
+- Double-click Freeciv (the client; its icon gives it the large stack it
+  needs). "Start New Game" starts the server beside it.
+- From a Shell: cd to the drawer, then Stack 1000000 and Freeciv. With no
+  options it uses the trident tileset this archive holds and plays sound
+  through AHI; Freeciv -t trident -P none plays without sound.
+- Shift+Return ends a turn. Options, Save Game and Load Game are in the
+  client's menu; Options, Quit closes the client and the server with it.
+
+Licence
+-------
+
+Freeciv and its data are GPL-2.0-or-later (COPYING); the source is at
+https://github.com/freeciv/freeciv. The icons are drawn from Freeciv's own
+client icon.
+
+Build
+-----
+
+Freeciv commit @UPSTREAM_COMMIT@,
+port commit @REPOSITORY_COMMIT@.
+
+Port: the AmiCradle Team, https://github.com/DalsinAI/amigafreeciv

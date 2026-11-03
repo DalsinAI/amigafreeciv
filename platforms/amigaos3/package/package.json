@@ -1,0 +1,69 @@
+{
+  "drawer": "Freeciv",
+  "drawer_icon": "icons/Freeciv-drawer.info",
+  "archive": "freeciv-{version}-68040",
+  "members": [
+    {
+      "name": "Freeciv",
+      "build": "freeciv-sdl2"
+    },
+    {
+      "name": "Freeciv.info",
+      "repo": "icons/Freeciv.info"
+    },
+    {
+      "name": "freeciv-server",
+      "build": "freeciv-server"
+    },
+    {
+      "name": "ReadMe",
+      "readme": "package/ReadMe.in"
+    },
+    {
+      "name": "ReadMe.info",
+      "repo": "icons/ReadMe.info"
+    },
+    {
+      "name": "COPYING",
+      "repo": "../../COPYING"
+    },
+    {
+      "name": "COPYING.info",
+      "repo": "icons/COPYING.info"
+    },
+    {
+      "name": "",
+      "tar": "FreecivData.tar"
+    }
+  ],
+  "aminet": [
+    [
+      "Short",
+      "Freeciv, the empire-building strategy game, 68040+FPU"
+    ],
+    [
+      "Author",
+      "The Freeciv project; port: AmiCradle Team"
+    ],
+    [
+      "Uploader",
+      "AmiCradle Team"
+    ],
+    [
+      "Type",
+      "game/strat"
+    ],
+    [
+      "Version",
+      "{version}"
+    ],
+    [
+      "Requires",
+      "AmigaOS 3.2, 68040/68060 with FPU, GFOpenGPU SDL2 and SDL2_image, bsdsocket.library"
+    ],
+    [
+      "Architecture",
+      "m68k-amigaos >= 3.2"
+    ]
+  ]
+}
