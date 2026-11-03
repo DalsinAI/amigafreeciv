@@ -49,8 +49,9 @@ the SDL2 client as `Freeciv` (the game's icon, a tool icon with the
 `FreecivData.tar` (already unpacked), `ReadMe` (from `package/ReadMe.in`) and
 `COPYING`. `patches/0016-sdl2-workbench-start-amigaos.patch` lets the client
 start from that icon: started from Workbench (libnix gives argc 0) or with no
-options it takes `-t trident`, the tileset packed, and on AmigaOS it sets the
-`SDL_IMAGE_DECODER` hint to `cpu` (an environment variable still outranks it),
+options it takes `-t trident -P sdl` (the tileset packed, sound through
+SDL2_mixer), and on AmigaOS it sets the `SDL_IMAGE_DECODER` and
+`SDL_MIXER_DECODER` hints to `cpu` (environment variables still outrank them),
 as `Freeciv.amigados` does from a Shell. OpenBench runs no script from an icon
 and the system has no IconX, so an icon on the script would not start the game
 (seen in `lab:showcase` on 2 November 2026).
