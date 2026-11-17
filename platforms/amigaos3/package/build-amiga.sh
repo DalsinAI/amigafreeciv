@@ -25,6 +25,6 @@ trap 'rm -rf "$BUILD"' EXIT INT TERM
 OUT=$BUILD FREECIV_WORK=$BUILD/.work bash "$ROOT/build-amiga.sh" > "$OUT/build-output.txt" 2>&1 \
     || { tail -n 80 "$OUT/build-output.txt"; exit 1; }
 tail -n 25 "$OUT/build-output.txt"
-cp "$BUILD/receipt.json" "$BUILD/UnTar" "$OUT/"
+cp "$BUILD/receipt.json" "$BUILD/UnTar" "$BUILD/fpu-check.txt" "$OUT/"
 cp "$BUILD"/*.module "$OUT/" 2>/dev/null || true
 python3 "$ROOT/tools/make_package.py" --build "$BUILD" --version "$VERSION" --out "$OUT"

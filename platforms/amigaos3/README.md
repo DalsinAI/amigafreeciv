@@ -47,7 +47,16 @@ lab: `UnTar Freeciv.tar` in the drawer that is to hold it). The drawer holds
 the SDL2 client as `Freeciv` (the game's icon, a tool icon with the
 1,000,000-byte stack the client needs) and the server, the data and docs from
 `FreecivData.tar` (already unpacked), `ReadMe` (from `package/ReadMe.in`) and
-`COPYING`. `patches/0016-sdl2-workbench-start-amigaos.patch` lets the client
+`COPYING`. Beside the drawer is `Install-Freeciv` with its icon (from
+`package/installer.json` with amicradle's `scripts/ports/port_installer.py`;
+`package.json`'s `beside`): it checks the CPU, the FPU and GFOpenGPU's SDL2,
+SDL2_image and SDL2_mixer modules, copies the drawer where the player says
+and keeps `User` on an update. The archive is the client drawer only: the
+client and server with the data `build-amigaos3.sh` stages; Freeciv's other
+tilesets, themes, scenarios and translations are left for a later archive.
+`build-amiga.sh` runs `tools/check_fpu.py` on the unstripped executables (no
+libgcc soft-float; `fpu-check.txt`), and `python3 tests/test_package.py` runs
+the host tests. `patches/0016-sdl2-workbench-start-amigaos.patch` lets the client
 start from that icon: started from Workbench (libnix gives argc 0) or with no
 options it takes `-t trident -P sdl` (the tileset packed, sound through
 SDL2_mixer), and on AmigaOS it sets the `SDL_IMAGE_DECODER` and

@@ -89,6 +89,10 @@ if [[ -d "$WORK/sdk/modules" ]]; then
     cp "$WORK/sdk/modules/"*.module "$WORK/sdk/SDL2-SHA256SUMS" "$OUT/"
 fi
 (cd "$OUT" && sha256sum freeciv-* UnTar FreecivData.tar $(ls *.module 2>/dev/null)) > "$OUT/SHA256SUMS"
+# The FPU check, on the unstripped executables: no libgcc soft-float in them
+fpu=()
+for f in "$WORK"/game/build/freeciv-server "$WORK"/game/build/freeciv-sdl2; do [[ -f $f ]] && fpu+=("$f"); done
+python3 "$HERE/tools/check_fpu.py" "$PREFIX/bin/m68k-amigaos-nm" "${fpu[@]}" | tee "$OUT/fpu-check.txt"
 rm -rf "$WORK"
 echo "total $(( $(date +%s) - START )) s"
 ls -la "$OUT"

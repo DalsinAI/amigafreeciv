@@ -36,6 +36,16 @@
       "tar": "FreecivData.tar"
     }
   ],
+  "beside": [
+    {
+      "name": "Install-Freeciv",
+      "repo": "package/Install-Freeciv"
+    },
+    {
+      "name": "Install-Freeciv.info",
+      "repo": "package/Install-Freeciv.info"
+    }
+  ],
   "aminet": [
     [
       "Short",
@@ -59,7 +69,7 @@
     ],
     [
       "Requires",
-      "AmigaOS 3.2, 68040/68060 with FPU, GFOpenGPU SDL2 and SDL2_image, bsdsocket.library"
+      "AmigaOS 3.2, 68040/68060 with FPU, GFOpenGPU SDL2, SDL2_image and SDL2_mixer, bsdsocket.library"
     ],
     [
       "Architecture",

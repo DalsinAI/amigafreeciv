@@ -14,6 +14,8 @@ package/package.json says what goes in the drawer, from where:
                  of it unpacked under "name"; "" for the drawer itself)
   "check"        optional, on a "build" member: the receipt.json field that
                  must be its SHA-256
+  "beside"       optional: files in the repository that go beside the drawer
+                 ("name", "repo"), as Install-Freeciv and its icon do
   "aminet"       the Aminet readme's head: [field, value] pairs
 
 BUILD holds what the port's build-amiga.sh made, with receipt.json. A
@@ -23,7 +25,8 @@ line over 78 characters.
 
 OUT gets:
   ARCHIVE.lha          level-1 headers, -lh5-, as Amiga LhA writes them
-                       (tools/lha_archive.py), the drawer and its icon
+                       (tools/lha_archive.py), the drawer and its icon,
+                       and the "beside" files (the Installer)
   ARCHIVE.lha.sha256
   ARCHIVE.readme       the Aminet-style description
   DRAWER/ DRAWER.info  the drawer as it unpacks
@@ -132,6 +135,10 @@ def main() -> int:
 
     members = [lha_archive.Member(f"{drawer}/{p}", b, prot, "", stamp) for p, b, prot in files]
     members.append(lha_archive.Member(f"{drawer}.info", (ROOT / spec["drawer_icon"]).read_bytes(), 0, "", stamp))
+    for b in spec.get("beside", []):
+        if "/" in b["name"] or ":" in b["name"] or b["name"].lower() in (drawer.lower(), f"{drawer}.info".lower()):
+            raise SystemExit(f"package.json: beside {b['name']} must be a plain name of its own")
+        members.append(lha_archive.Member(b["name"], (ROOT / b["repo"]).read_bytes(), 0, "", stamp))
     listing = [{"path": m.path, "bytes": len(m.data), "sha256": sha256(m.data)} for m in members]
 
     args.out.mkdir(parents=True, exist_ok=True)
