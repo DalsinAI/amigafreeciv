@@ -1,0 +1,20 @@
+{
+  "name": "Freeciv",
+  "version": "3.3.90-amigaos3-rc1",
+  "drawer": "Freeciv",
+  "program": "Freeciv",
+  "cpu": "68040",
+  "fpu": true,
+  "space": 30000000,
+  "modules": [
+    "SDL2.module",
+    "SDL2_image.module",
+    "SDL2_mixer.module"
+  ],
+  "keep": [
+    "User"
+  ],
+  "parent": "Work:Games",
+  "badge": "../icons/art/freeciv.png",
+  "script": "Install-Freeciv"
+}

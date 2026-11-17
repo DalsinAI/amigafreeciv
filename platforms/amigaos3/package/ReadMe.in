@@ -5,23 +5,35 @@ Freeciv is the open-source empire-building strategy game in the manner of
 Civilization: found cities, research, trade, make war and peace, from
 4000 BC to the space age. This is its AmigaOS 3.x build for a 68040 or
 68060 with an FPU: the SDL 2 client (through GFOpenGPU) and the server,
-English only. Status: TESTING, not a release.
+English only. Status: release candidate, not yet a release.
+
+This is the client drawer: the client with the data it plays with (the
+classic and civ2civ3 rulesets, the human theme, the trident tileset, the
+small flags, and the standard sounds and music) and the server it starts
+for a game on this Amiga. Freeciv's other tilesets, themes, scenarios,
+large flags and translations are not in it; they are to come later as an
+archive of their own.
 
 Requirements
 ------------
 
 - AmigaOS 3.2, a 68040 or 68060 with an FPU, AmiCradle or an RTG board,
   and plenty of fast RAM (the client alone used about 45 MB).
-- GFOpenGPU's SDL2.module and SDL2_image.module in LIBS:GFOpenGPU/.
+- GFOpenGPU's SDL2.module, SDL2_image.module and SDL2_mixer.module in
+  LIBS:GFOpenGPU/ (the Installer copies one there from LIBS:OpenGPU/
+  where only that folder has it).
 - bsdsocket.library (GFOpenSocket): the client talks to its own server
   on this machine.
 
 Installing
 ----------
 
-Unpack the archive where you keep games (lha x freeciv-...lha Games:) and
-open the Freeciv drawer. Settings and saves go to the drawer's User
-drawer.
+Unpack the archive anywhere (lha x freeciv-...lha RAM:) and run
+Install-Freeciv from its icon. It checks the CPU, the FPU and the modules,
+asks where the Freeciv drawer should go (Work:Games is offered), and
+copies it there. Settings and saves go to the drawer's User drawer; an
+update leaves User as it is. Copying the Freeciv drawer and its icon
+yourself works too.
 
 Playing
 -------
